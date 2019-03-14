@@ -1,9 +1,11 @@
 #include "IOCP.h"
+#include "PacketProcess.h"
 #include <iostream>
 #include <sstream>
 #include <string>
 
 IOCP::IOCP() {
+	m_FunctionProcess = new PacketProcess(this);
 }
 
 IOCP::~IOCP() {
@@ -11,6 +13,11 @@ IOCP::~IOCP() {
 		m_WorkerThread[i].join();
 	}
 	m_WorkerThread.clear();
+
+	if (m_FunctionProcess) {
+		delete m_FunctionProcess;
+		m_FunctionProcess = nullptr;
+	}
 }
 
 void IOCP::StartIOCP() {
@@ -59,7 +66,9 @@ void IOCP::ProcessWorkerThread() {
 			int PacketMessage = -1;
 			RecvStream >> PacketMessage;
 
-
+			if (PacketMessage >= 0 && PacketMessage < PM_COUNT) {
+				m_FunctionProcess->operator[]((PACKETMESSAGE)PacketMessage)(EventSocket, RecvStream);
+			}
 		}
 		catch (const std::string& Exception) {
 			std::cout << Exception << std::endl;

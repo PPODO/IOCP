@@ -50,18 +50,22 @@ namespace PACKET {
 namespace PLAYER {
 	class HANSEIDLL_API Character {
 	public:
+		std::string m_PlayerName;
 
+		SOCKET m_Socket;
 
 	public:
 		Character();
 		~Character();
 
 		friend std::ostream& operator<<(std::ostream& os, Character& Info) {
+			os << Info.m_PlayerName << std::endl;
 
 			return os;
 		}
 
 		friend std::istream& operator>>(std::istream& is, Character& Info) {
+			is >> Info.m_PlayerName;
 
 			return is;
 		}
@@ -83,15 +87,8 @@ namespace PLAYER {
 		}
 
 		friend std::istream& operator>>(std::istream& is, CharacterInformation& Info) {
-			int Size = -1;
-			is >> Size;
+			
 
-			for (int i = 0; i < Size; i++) {
-				Character NewCharacter;
-				is >> NewCharacter;
-
-				Info.m_Characters.push_back(NewCharacter);
-			}
 			return is;
 		}
 	};

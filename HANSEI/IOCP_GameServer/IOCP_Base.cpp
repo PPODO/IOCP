@@ -54,19 +54,20 @@ void IOCP_Base::StartIOCP() {
 	}
 }
 
-void IOCP_Base::Send(SOCKETINFO* Info) {
+bool IOCP_Base::Send(SOCKETINFO* Info) {
 	DWORD SendBytes;
 
 	memset(&Info->m_Overlapped, 0, sizeof(WSAOVERLAPPED));
 	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, 0, nullptr, nullptr) == INVALID_SOCKET) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			std::cout << "WSA Send Error - " << WSAGetLastError() << std::endl;
-			return;
+			return false;
 		}
 	}
+	return true;
 }
 
-void IOCP_Base::Send(SOCKETINFO* Info, std::stringstream& SendStream) {
+bool IOCP_Base::Send(SOCKETINFO* Info, std::stringstream& SendStream) {
 	DWORD SendBytes;
 
 	memset(&Info->m_Overlapped, 0, sizeof(WSAOVERLAPPED));
@@ -77,12 +78,13 @@ void IOCP_Base::Send(SOCKETINFO* Info, std::stringstream& SendStream) {
 	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, 0, nullptr, nullptr) == INVALID_SOCKET) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			std::cout << "WSA Send Error - " << WSAGetLastError() << std::endl;
-			return;
+			return false;
 		}
 	}
+	return true;
 }
 
-void IOCP_Base::Recv(SOCKETINFO* Info) {
+bool IOCP_Base::Recv(SOCKETINFO* Info) {
 	DWORD RecvBytes = 0, Flags = 0;
 
 	memset(&Info->m_Overlapped, 0, sizeof(WSAOVERLAPPED));
@@ -93,7 +95,8 @@ void IOCP_Base::Recv(SOCKETINFO* Info) {
 	if (WSARecv(Info->m_Socket, &Info->m_DataBuffer, 1, &RecvBytes, &Flags, &Info->m_Overlapped, nullptr) == INVALID_SOCKET) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
 			std::cout << "WSA Recv Error - " << WSAGetLastError() << std::endl;
-			return;
+			return false;
 		}
 	}
+	return true;
 }

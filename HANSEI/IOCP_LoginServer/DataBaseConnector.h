@@ -11,22 +11,12 @@ using namespace PACKET;
 
 static const int MaxQueryLen = 256;
 
-class DataBaseConnector {
-private:
-	MYSQL m_LoginConnecter;
-	MYSQL m_SessionConnecter;
-	MYSQL* m_LoginHandler;
-	MYSQL* m_SessionHandler;
-
-public:
-	DataBaseConnector();
-	~DataBaseConnector();
-
+class DataBaseConnector : public DATABASE::DataBaseConnectorClass {
 private:
 	EFAILED AddPlayerToSession(std::string& SessionName, int CurrentPlayer);
 	
 public:
-	int GetAllSessionInformation(SessionInformation& Sessions);
+	int GetAllSessionInformation(SessionInformation& Sessions, int MinLimit, int&);
 	bool GetNickNameByID(std::string&, std::string&);
 	bool CheckIfUserExists(std::string&, std::string&);
 	EFAILED InsertNewAccount(std::string& NickName, std::string& ID, std::string& Password);

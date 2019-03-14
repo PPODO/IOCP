@@ -1,6 +1,5 @@
 #pragma once
 #include "IOCP_Base.h"
-#include "Pawn_Packet.h"
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -12,7 +11,7 @@ private:
 	std::vector<std::thread> m_WorkerThread;
 
 private:
-
+	class PacketProcess* m_FunctionProcess;
 
 protected:
 	virtual bool CreateWorkerThread() override;

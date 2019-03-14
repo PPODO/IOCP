@@ -5,22 +5,20 @@
 #include <vector>
 #include <functional>
 
-static const int MaxNickNameLen = 15;
-static const int MaxIDLen = 15;
-
 enum PACKETMESSAGE {
 	PM_SIGNUP,
 	PM_LOGIN,
 	PM_CREATESESSION,
 	PM_SESSIONLIST,
 	PM_JOINSESSION,
+	PM_DISCONNECT,
 	PM_COUNT
 };
 
 class PacketProcess {
 private:
 	class IOCP_ForMain* m_Server;
-	DataBaseConnector* m_DB;
+	DataBaseConnector* m_DataBase;
 
 private:
 	std::vector<std::function<void(SOCKETINFO*, std::stringstream&)>> m_Functions;
@@ -31,6 +29,7 @@ private:
 	void CreateSession(SOCKETINFO* Info, std::stringstream& RecvStream);
 	void GetAllSessionInformation(SOCKETINFO* Info, std::stringstream& RecvStream);
 	void JoinSession(SOCKETINFO* Info, std::stringstream& RecvStream);
+	void Disconnect(SOCKETINFO* Info, std::stringstream& RecvStream);
 
 public:
 	PacketProcess(IOCP_ForMain* IOCP);

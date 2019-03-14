@@ -3,7 +3,7 @@
 int main() {
 	IOCP Server;
 
-	if (Server.Init(3510)) {
+	if (Server.Init(3500)) {
 		Server.StartIOCP();
 	}
 }

@@ -27,9 +27,9 @@ public:
 
 public:
 	bool Init(const int Port);
-	void Send(SOCKETINFO* Info);
-	void Send(SOCKETINFO* Info, std::stringstream&);
-	void Recv(SOCKETINFO* Info);
+	bool Send(SOCKETINFO* Info);
+	bool Send(SOCKETINFO* Info, std::stringstream&);
+	bool Recv(SOCKETINFO* Info);
 
 	virtual void StartIOCP();
 
