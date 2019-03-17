@@ -10,6 +10,10 @@
 enum PACKETMESSAGE {
 	PM_JOIN,
 	PM_DISCONNECT,
+	PM_UPDATE,
+
+	PM_DISCONNECTOTHER,
+	PM_NEWPLAYER,
 	PM_COUNT
 };
 
@@ -34,11 +38,13 @@ public:
 	~PacketProcess();
 
 private:
-	void BroadCast(std::stringstream& SendStream, const PLAYER::Character& NewPlayer, const PLAYER::CharacterInformation& Session);
+	void BroadCast(std::stringstream& SendStream, const PLAYER::CharacterInformation& Session);
+	void BroadCast(std::stringstream& SendStream, const PLAYER::CharacterInformation& Session, unsigned int Key);
 
 private:
 	void JoinNewPlayer(SOCKETINFO* Info, std::stringstream& RecvStream);
 	void DisconnectFromSession(SOCKETINFO* Info, std::stringstream& RecvStream);
+	void UpdatePlayerInformation(SOCKETINFO* Info, std::stringstream& RecvStream);
 
 public:
 	std::function<void(SOCKETINFO*, std::stringstream&)>& operator[](const PACKETMESSAGE& PacketType) {

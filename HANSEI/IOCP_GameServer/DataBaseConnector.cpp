@@ -8,6 +8,35 @@ DataBaseConnector::~DataBaseConnector() {
 
 }
 
+EFAILED DataBaseConnector::AddPlayerToSession(std::string& SessionName) {
+	char Query[MaxQueryLen] = { "\0" };
+
+	sprintf(Query, "SELECT * FROM `information` WHERE session_name = '%s'", SessionName.c_str());
+
+	if (mysql_query(m_SessionHandle, Query) == 0) {
+		MYSQL_RES* Result = mysql_store_result(m_SessionHandle);
+		if (Result) {
+			MYSQL_ROW Row = nullptr;
+			std::stringstream Stream;
+			while ((Row = mysql_fetch_row(Result))) {
+				for (int i = 0; i < Result->field_count; i++) {
+					Stream << Row[i] << std::endl;
+				}
+			}
+			Session SessionInfo;
+			Stream >> SessionInfo;
+
+			memset(Query, 0, MaxQueryLen);
+			sprintf(Query, "UPDATE `information` SET current_player = '%d' WHERE session_name = '%s'", SessionInfo.m_CurrentPlayer + 1, SessionName.c_str());
+			
+			if (mysql_query(m_SessionHandle, Query) == 0) {
+				return EF_SUCCEED;
+			}
+		}
+	}
+	return EF_FAILED;
+}
+
 bool DataBaseConnector::CompareSessionName(const std::string & SessionName) {
 	char Query[MaxQueryLen] = { "\0" };
 

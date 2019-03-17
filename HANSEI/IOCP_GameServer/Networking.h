@@ -33,9 +33,23 @@ namespace DATABASE {
 
 namespace PACKET {
 	enum HANSEIDLL_API EFAILED {
-		EF_EXIST,
 		EF_FAILED,
+		EF_EXIST,
 		EF_SUCCEED
+	};
+
+	enum HANSEIDLL_API ELOGINFAILED {
+		ELF_WRONGID,
+		ELF_WRONGPASS,
+		ELF_FAILED,
+		ELF_SUCCEED
+	};
+
+	enum HANSEIDLL_API ESIGNUPFAILED {
+		ESF_EXISTNICKNAME,
+		ESF_EXISTID,
+		ESF_FAILED,
+		ESF_SUCCEED
 	};
 
 	enum HANSEIDLL_API EJOINFAILED {
@@ -45,12 +59,43 @@ namespace PACKET {
 		EJF_MAXPLAYER,
 		EJF_SUCCEED
 	};
+
+	enum HANSEIDLL_API ENEWSESSIONFAILED {
+		ENSF_FAILED,
+		ENSF_EXIST,
+		ENSF_SUCCEED
+	};
 }
 
 namespace PLAYER {
+	struct Vector {
+		float X, Y, Z;
+
+		Vector() { X = 0, Y = 0, Z = 0; };
+
+		friend std::ostream& operator<<(std::ostream& os, Vector& Vec) {
+			os << Vec.X << std::endl;
+			os << Vec.Y << std::endl;
+			os << Vec.Z << std::endl;
+
+			return os;
+		}
+
+		friend std::istream& operator>>(std::istream& is, Vector& Vec) {
+			is >> Vec.X;
+			is >> Vec.Y;
+			is >> Vec.Z;
+
+			return is;
+		}
+	};
+
 	class HANSEIDLL_API Character {
 	public:
+		unsigned int m_UniqueKey;
 		std::string m_PlayerName;
+		Vector m_Location;
+		Vector m_Rotation;
 
 		SOCKET m_Socket;
 
@@ -59,15 +104,28 @@ namespace PLAYER {
 		~Character();
 
 		friend std::ostream& operator<<(std::ostream& os, Character& Info) {
+			os << Info.m_UniqueKey << std::endl;
 			os << Info.m_PlayerName << std::endl;
+			os << Info.m_Location << std::endl;
+			os << Info.m_Rotation << std::endl;
 
 			return os;
 		}
 
 		friend std::istream& operator>>(std::istream& is, Character& Info) {
+			is >> Info.m_UniqueKey;
 			is >> Info.m_PlayerName;
+			is >> Info.m_Location;
+			is >> Info.m_Rotation;
 
 			return is;
+		}
+
+		void operator=(const Character& Char) {
+			this->m_Location = Char.m_Location;
+			this->m_PlayerName = Char.m_PlayerName;
+			this->m_Rotation = Char.m_Rotation;
+			this->m_UniqueKey = Char.m_UniqueKey;
 		}
 	};
 
@@ -87,8 +145,9 @@ namespace PLAYER {
 		}
 
 		friend std::istream& operator>>(std::istream& is, CharacterInformation& Info) {
-			
-
+			for (auto& Iterator : Info.m_Characters) {
+				is >> Iterator;
+			}
 			return is;
 		}
 	};

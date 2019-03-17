@@ -2,33 +2,27 @@
 #include "DataBaseConnector.h"
 #include <iostream>
 
-EFAILED DataBaseConnector::AddPlayerToSession(std::string& SessionName, int CurrentPlayer) {
+ELOGINFAILED DataBaseConnector::CheckIfUserExists(std::string& ID, std::string& Password) {
 	char Query[MaxQueryLen] = { "\0" };
-
-	sprintf(Query, "UPDATE `information` SET current_player = '%d' WHERE session_name = '%s'", CurrentPlayer, SessionName.c_str());
-
-	if (mysql_query(m_SessionHandle, Query) == 0) {
-		return EF_SUCCEED;
-	}
-	return EF_FAILED;
-}
-
-bool DataBaseConnector::CheckIfUserExists(std::string& ID, std::string& Password) {
-	char Query[MaxQueryLen] = { "\0" };
-	sprintf(Query, "SELECT * FROM `information` WHERE id = '%s' AND password = '%s'", ID.c_str(), Password.c_str());
+	sprintf(Query, "SELECT * FROM `information` WHERE id = '%s'", ID.c_str());
 
 	if (mysql_query(m_LoginHandle, Query) == 0) {
 		MYSQL_RES* Result = mysql_store_result(m_LoginHandle);
 		if (Result) {
 			MYSQL_ROW Rows = nullptr;
 			while ((Rows = mysql_fetch_row(Result))) {
+				if (Password.compare(Rows[2])) {
+					mysql_free_result(Result);
+					return ELF_WRONGPASS;
+				}
 				mysql_free_result(Result);
-				return true;
+				return ELF_SUCCEED;
 			}
 		}
 		mysql_free_result(Result);
+		return ELF_WRONGID;
 	}
-	return false;
+	return ELF_FAILED;
 }
 
 bool DataBaseConnector::GetNickNameByID(std::string& ID, std::string& NickName) {
@@ -54,17 +48,23 @@ bool DataBaseConnector::GetNickNameByID(std::string& ID, std::string& NickName) 
 	return false;
 }
 
-EFAILED DataBaseConnector::InsertNewAccount(std::string& NickName, std::string& ID, std::string& Password) {
+ESIGNUPFAILED DataBaseConnector::InsertNewAccount(std::string& NickName, std::string& ID, std::string& Password) {
 	char Query[MaxQueryLen] = { "\0" };
-	sprintf(Query, "SELECT * FROM `information` WHERE nickname = '%s'", NickName.c_str());
+	sprintf(Query, "SELECT * FROM `information` WHERE nickname = '%s' or id = '%s'", NickName.c_str(), ID.c_str());
 
 	if (mysql_query(m_LoginHandle, Query) == 0) {
 		MYSQL_RES* Result = mysql_store_result(m_LoginHandle);
 		if (Result) {
 			MYSQL_ROW Rows = nullptr;
 			while ((Rows = mysql_fetch_row(Result))) {
-				mysql_free_result(Result);
-				return EF_EXIST;
+				if (!NickName.compare(Rows[0])) {
+					mysql_free_result(Result);
+					return ESF_EXISTNICKNAME;
+				}
+				else if (!ID.compare(Rows[1])) {
+					mysql_free_result(Result);
+					return ESF_EXISTID;
+				}
 			}
 		}
 		mysql_free_result(Result);
@@ -73,16 +73,16 @@ EFAILED DataBaseConnector::InsertNewAccount(std::string& NickName, std::string& 
 		sprintf(Query, "INSERT INTO `information` (`nickname`, `id`, `password`) VALUES ('%s', '%s', '%s')", NickName.c_str(), ID.c_str(), Password.c_str());
 
 		if (mysql_query(m_LoginHandle, Query) == 0) {
-			return EF_SUCCEED;
+			return ESF_SUCCEED;
 		}
 		else {
-			return EF_FAILED;
+			return ESF_FAILED;
 		}
 	}
-	return EF_FAILED;
+	return ESF_FAILED;
 }
 
-EFAILED DataBaseConnector::InsertNewSession(const Session& _Session) {
+ENEWSESSIONFAILED DataBaseConnector::InsertNewSession(const Session& _Session) {
 	char Query[MaxQueryLen] = { "\0" };
 	sprintf(Query, "SELECT * FROM `information` WHERE session_name = '%s'", _Session.m_SessionName.c_str());
 
@@ -92,7 +92,7 @@ EFAILED DataBaseConnector::InsertNewSession(const Session& _Session) {
 			MYSQL_ROW Rows = nullptr;
 			while ((Rows = mysql_fetch_row(Result))) {
 				mysql_free_result(Result);
-				return EF_EXIST;
+				return ENSF_EXIST;
 			}
 		}
 		mysql_free_result(Result);
@@ -101,10 +101,10 @@ EFAILED DataBaseConnector::InsertNewSession(const Session& _Session) {
 		sprintf(Query, "INSERT INTO `information` (`session_name`, `max_player`, `use_password`, `session_password`) VALUES ('%s', '%d', '%d', '%s')", _Session.m_SessionName.c_str(), _Session.m_MaxPlayer, _Session.m_bUsePassword, _Session.m_bUsePassword ? _Session.m_Password.c_str() : "0");
 
 		if (mysql_query(m_SessionHandle, Query) == 0) {
-			return EF_SUCCEED;
+			return ENSF_SUCCEED;
 		}
 	}
-	return EF_FAILED;
+	return ENSF_FAILED;
 }
 
 int DataBaseConnector::GetAllSessionInformation(SessionInformation& Sessions, int MinLimit, int& MaxSession) {
@@ -168,7 +168,7 @@ EJOINFAILED DataBaseConnector::JoinSession(std::string& SessionName, bool UsePas
 					return EJF_WRONGPASS;
 				}
 				mysql_free_result(Result);
-				return AddPlayerToSession(SessionName, Info.m_CurrentPlayer + 1) == EF_SUCCEED ? EJF_SUCCEED : EJF_FAILED;
+				return EJF_SUCCEED;
 			}
 		}
 		mysql_free_result(Result);
