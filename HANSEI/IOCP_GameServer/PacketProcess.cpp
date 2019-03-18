@@ -18,26 +18,27 @@ PacketProcess::~PacketProcess() {
 
 void PacketProcess::JoinNewPlayer(SOCKETINFO* Info, std::stringstream& RecvStream) {
 	std::stringstream SendStream;
-	unsigned int UniqueKey = 0;
 	std::string SessionName, NickName;
-	RecvStream >> SessionName >> NickName >> UniqueKey;
+	unsigned int UniqueKey = 0;
+	RecvStream >> SessionName >> NickName;
 
 	auto SessionData = m_GameInformation.find(SessionName);
 	if (SessionData != m_GameInformation.cend()) {
 		if (m_Database && m_Database->AddPlayerToSession(SessionName) != EF_FAILED) {
 			PLAYER::Character NewPlayer;
+			UniqueKey = SessionData->second.m_Characters.size();
 			NewPlayer.m_UniqueKey = UniqueKey;
 			NewPlayer.m_PlayerName = NickName;
 			NewPlayer.m_Socket = Info->m_Socket;
 
 			// 기존의 플레이어들에게 새로운 플레이어가 들어왔음을 알리는 메시지를 보냄.
-			std::cout << "Join Session Succeed!! : " << SessionName << '\t' << NickName << std::endl;
+			std::cout << "Join Session Succeed!! : " << SessionName << '\t' << NickName << '\t' << UniqueKey << std::endl;
 			SendStream << PM_NEWPLAYER << std::endl << EJS_SUCCEDD << std::endl << 1 << std::endl << NewPlayer;
 			BroadCast(SendStream, SessionData->second);
 			SessionData->second.m_Characters.push_back(NewPlayer);
 			
 			SendStream.str("");
-			SendStream << PM_JOIN << std::endl << EJS_SUCCEDD << std::endl << SessionData->second.m_Characters.size() << std::endl << SessionData->second;
+			SendStream << PM_JOIN << std::endl << EJS_SUCCEDD << std::endl << UniqueKey << std::endl << SessionData->second.m_Characters.size() << std::endl << SessionData->second;
 			m_Server->Send(Info, SendStream);
 			return;
 		}
@@ -46,14 +47,15 @@ void PacketProcess::JoinNewPlayer(SOCKETINFO* Info, std::stringstream& RecvStrea
 		if (m_Database && m_Database->CompareSessionName(SessionName) && m_Database->AddPlayerToSession(SessionName) != EF_FAILED) {
 			PLAYER::Character NewPlayer;
 			PLAYER::CharacterInformation Information;
+			UniqueKey = Information.m_Characters.size();
 			NewPlayer.m_UniqueKey = UniqueKey;
 			NewPlayer.m_PlayerName = NickName;
 			NewPlayer.m_Socket = Info->m_Socket;
 			Information.m_Characters.push_back(NewPlayer);
 
-			std::cout << "Join Session Succeed!! : " << SessionName << '\t' << NickName << std::endl;
+			std::cout << "Join Session Succeed!! : " << SessionName << '\t' << NickName << '\t' << UniqueKey << std::endl;
 			m_GameInformation.insert(std::make_pair(SessionName, Information));
-			SendStream << PM_JOIN << std::endl << EJS_SUCCEDD << std::endl << Information.m_Characters.size() << std::endl << Information;
+			SendStream << PM_JOIN << std::endl << EJS_SUCCEDD << std::endl << UniqueKey << std::endl << Information.m_Characters.size() << std::endl << Information;
 			m_Server->Send(Info, SendStream);
 			return;
 		}
@@ -66,17 +68,17 @@ void PacketProcess::JoinNewPlayer(SOCKETINFO* Info, std::stringstream& RecvStrea
 void PacketProcess::DisconnectFromSession(SOCKETINFO* Info, std::stringstream& RecvStream) {
 	std::stringstream SendStream;
 	std::string SessionName;
-	RecvStream >> SessionName; 
+	unsigned int UniqueKey = 0;
+	RecvStream >> SessionName >> UniqueKey; 
 
 	auto Iterator = m_GameInformation.find(SessionName);
 	if (Iterator != m_GameInformation.cend()) {
-		auto It = std::find_if(Iterator->second.m_Characters.cbegin(), Iterator->second.m_Characters.cend(), [&](const PLAYER::Character& Char) -> bool { if (Char.m_Socket == Info->m_Socket) { return true; } return false; });
+		auto It = std::find_if(Iterator->second.m_Characters.begin(), Iterator->second.m_Characters.end(), [&](const PLAYER::Character& Char) -> bool { if (Char.m_UniqueKey == UniqueKey) { return true; } return false; });
 		if (It != Iterator->second.m_Characters.cend()) {
-			unsigned int Key = It->m_UniqueKey;
-			Iterator->second.m_Characters.erase(It);
+			SendStream << PM_DISCONNECTOTHER << std::endl << UniqueKey << std::endl;
+			BroadCast(SendStream, Iterator->second, UniqueKey);
 
-			SendStream << PM_DISCONNECTOTHER << std::endl << Key << std::endl;
-			BroadCast(SendStream, Iterator->second);
+			Iterator->second.m_Characters.erase(It);
 		}
 		// No one left in Session
 		if (Iterator->second.m_Characters.size() == 0) {
@@ -117,7 +119,7 @@ void PacketProcess::BroadCast(std::stringstream& SendStream, const PLAYER::Chara
 	}
 }
 
-void PacketProcess::BroadCast(std::stringstream & SendStream, const PLAYER::CharacterInformation & Session, unsigned int Key) {
+void PacketProcess::BroadCast(std::stringstream & SendStream, const PLAYER::CharacterInformation& Session, unsigned int Key) {
 	SOCKETINFO* Info = new SOCKETINFO;
 	memset(Info, 0, sizeof(SOCKETINFO));
 
