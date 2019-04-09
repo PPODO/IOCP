@@ -1,5 +1,6 @@
 #pragma once
 #include "Socket.h"
+#include <sstream>
 
 const size_t MaxMessageBuffer = 1024;
 
@@ -7,8 +8,8 @@ typedef struct {
 	WSAOVERLAPPED m_Overlapped;
 	WSABUF m_DataBuffer;
 	char m_MessageBuffer[MaxMessageBuffer];
-	size_t m_SendBytes, m_RecvBytes;
 	SOCKET m_Socket;
+	size_t m_RecvBytes, m_SendBytes;
 }SOCKETINFO;
 
 class IOCP_Base {
@@ -24,13 +25,13 @@ public:
 	virtual void Start();
 	bool Init();
 
-protected:
+public:
 	virtual bool CreateWorkerThread() = 0;
 	virtual void ProcessWorkerThread() = 0;
 
 public:
-	bool Recv(SOCKETINFO* Info);
-	bool Send(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	bool Recv(SOCKETINFO* SocketInfo);
+	bool Send(SOCKETINFO* SocketInfo, std::stringstream& SendStream);
 
 public:
 	HANDLE GetIOCPHandle() const { return m_hIOCP; }

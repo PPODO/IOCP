@@ -1,6 +1,6 @@
 #pragma once
 #pragma comment(lib, "ws2_32.lib")
-#include <WinSock2.h>
+#include <winsock2.h>
 
 static const size_t MaxLen = 13;
 

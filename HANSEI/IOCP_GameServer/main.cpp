@@ -1,9 +1,10 @@
 #include "IOCP.h"
 
 int main() {
-	IOCP Server;
+	IOCP Server(3500);
 
-	if (Server.Init(3500)) {
-		Server.StartIOCP();
+	if (Server.Init()) {
+		Server.Start();
 	}
+	return 0;
 }

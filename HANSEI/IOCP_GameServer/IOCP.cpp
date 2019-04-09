@@ -1,11 +1,11 @@
 #include "IOCP.h"
-#include "PacketProcess.h"
+#include "GamePlayPacket.h"
+#include "PacketProcessor.h"
 #include <iostream>
-#include <sstream>
 #include <string>
 
-IOCP::IOCP() {
-	m_FunctionProcess = new PacketProcess(this);
+IOCP::IOCP(const int Port) : IOCP_Base(Port), m_Processor(nullptr) {
+	m_Processor = new PacketProcessor(this);
 }
 
 IOCP::~IOCP() {
@@ -14,23 +14,21 @@ IOCP::~IOCP() {
 	}
 	m_WorkerThread.clear();
 
-	if (m_FunctionProcess) {
-		delete m_FunctionProcess;
-		m_FunctionProcess = nullptr;
+	if (m_Processor) {
+		delete m_Processor;
+		m_Processor = nullptr;
 	}
 }
 
-void IOCP::StartIOCP() {
-	IOCP_Base::StartIOCP();
-
+void IOCP::Start() {
+	IOCP_Base::Start();
 }
 
 bool IOCP::CreateWorkerThread() {
 	SYSTEM_INFO SystemInfo;
 	GetSystemInfo(&SystemInfo);
-	size_t m_ThreadCount = SystemInfo.dwNumberOfProcessors * 2;
 
-	for (size_t i = 0; i < m_ThreadCount; i++) {
+	for (size_t i = 0; i < SystemInfo.dwNumberOfProcessors * 2; i++) {
 		m_WorkerThread.push_back(std::thread([this]() {
 			ProcessWorkerThread();
 		}));
@@ -40,8 +38,8 @@ bool IOCP::CreateWorkerThread() {
 }
 
 void IOCP::ProcessWorkerThread() {
-	DWORD RecvBytes = 0, CompletionKey = 0;
-	SOCKETINFO* EventSocket;
+	DWORD CompletionKey = 0, RecvBytes = 0;
+	SOCKETINFO* EventSocket = nullptr;
 
 	while (true) {
 		if (GetQueuedCompletionStatus(GetIOCPHandle(), &RecvBytes, (PULONG_PTR)&CompletionKey, (LPOVERLAPPED*)&EventSocket, INFINITE) == 0) {
@@ -62,18 +60,17 @@ void IOCP::ProcessWorkerThread() {
 		}
 
 		try {
-			std::stringstream RecvStream(EventSocket->m_DataBuffer.buf);
-			int PacketMessage = -1;
-			RecvStream >> PacketMessage;
+			GAMEPACKET* Packet = (GAMEPACKET*)EventSocket->m_DataBuffer.buf;
 
-			if (PacketMessage >= 0 && PacketMessage < PM_COUNT) {
-				m_FunctionProcess->operator[]((PACKETMESSAGE)PacketMessage)(EventSocket, RecvStream);
+			if (m_Processor && Packet && static_cast<size_t>(Packet->m_MessageType) >= 0 && Packet->m_MessageType < EPACKETMESSAGETYPE::EPMT_COUNT && m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))) {
+				m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))(EventSocket, Packet);
+			}
+			else {
+				throw "Unknown Packet!";
 			}
 		}
 		catch (const std::string& Exception) {
 			std::cout << Exception << std::endl;
 		}
-
-		Recv(EventSocket);
 	}
 }

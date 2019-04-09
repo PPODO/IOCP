@@ -1,32 +1,30 @@
-#include "../IOCP_Server/Socket.cpp"
-#include "../IOCP_Server/IOCP_Base.cpp"
-#include "IOCP_ForMain.h"
+#include "IOCP.h"
+#include "PacketProcessor.h"
 #include <iostream>
 #include <string>
-#include <sstream>
 
-IOCP_ForMain::IOCP_ForMain() {
-	m_PacketProcessor = new PacketProcess(this);
+IOCP::IOCP(const int Port) : IOCP_Base(Port), m_Processor(nullptr) {
+	m_Processor = new PacketProcessor(this);
 }
 
-IOCP_ForMain::~IOCP_ForMain() {
-	if (m_PacketProcessor) {
-		delete m_PacketProcessor;
-		m_PacketProcessor = nullptr;
-	}
-
-	for (auto& It : m_WorkerThread) {
-		It.join();
+IOCP::~IOCP() {
+	for (size_t i = 0; i < m_WorkerThread.size(); i++) {
+		m_WorkerThread[i].join();
 	}
 	m_WorkerThread.clear();
+
+	if (m_Processor) {
+		delete m_Processor;
+		m_Processor = nullptr;
+	}
 }
 
-void IOCP_ForMain::StartIOCP() {
-	IOCP_Base::StartIOCP();
+void IOCP::Start() {
+	IOCP_Base::Start();
 
 }
 
-bool IOCP_ForMain::CreateWorkerThread() {
+bool IOCP::CreateWorkerThread() {
 	SYSTEM_INFO SystemInfo;
 	GetSystemInfo(&SystemInfo);
 
@@ -39,7 +37,7 @@ bool IOCP_ForMain::CreateWorkerThread() {
 	return true;
 }
 
-void IOCP_ForMain::ProcessWorkerThread() {
+void IOCP::ProcessWorkerThread() {
 	DWORD RecvBytes = 0, CompletionKey = 0;
 	SOCKETINFO* EventSocket = nullptr;
 
@@ -63,17 +61,18 @@ void IOCP_ForMain::ProcessWorkerThread() {
 
 		try {
 			std::stringstream RecvStream(EventSocket->m_DataBuffer.buf);
-			int PacketType = -1;
+			size_t PacketType = -1;
+
 			RecvStream >> PacketType;
 
-			if (PacketType >= 0 && PacketType < PM_COUNT) {
-				m_PacketProcessor->operator[]((PACKETMESSAGE)PacketType)(EventSocket, RecvStream);
+			if (m_Processor && PacketType >= 0 && PacketType < EPMT_COUNT && m_Processor->operator[](PacketType)) {
+				m_Processor->operator[](PacketType)(EventSocket, RecvStream);
 			}
 			else {
-				throw "Nonexistent Packet Type!!";
+				throw "Unknown Packet!";
 			}
 		}
-		catch (std::string& Exception) {
+		catch (const std::string& Exception) {
 			std::cout << Exception << std::endl;
 		}
 

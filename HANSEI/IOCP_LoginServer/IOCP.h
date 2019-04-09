@@ -1,20 +1,16 @@
 #pragma once
 #include "IOCP_Base.h"
+#include <mutex>
 #include <thread>
 #include <vector>
-#include <mutex>
 
 class IOCP : public IOCP_Base {
 private:
-	std::vector<std::thread> m_WorkerThread;
 	std::mutex m_Lock;
+	std::vector<std::thread> m_WorkerThread;
 
 private:
 	class PacketProcessor* m_Processor;
-
-protected:
-	virtual bool CreateWorkerThread() override;
-	virtual void ProcessWorkerThread() override;
 
 public:
 	IOCP(const int Port);
@@ -22,5 +18,9 @@ public:
 
 public:
 	virtual void Start() override;
+
+public:
+	virtual bool CreateWorkerThread() override;
+	virtual void ProcessWorkerThread() override;
 
 };
