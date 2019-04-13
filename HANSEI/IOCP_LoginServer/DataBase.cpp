@@ -27,6 +27,16 @@ DataBase::~DataBase() {
 	mysql_close(&m_SessionHandle);
 }
 
+bool DataBase::ClearAllSessions() {
+	char Query[MaxQuerySize] = { "\0" };
+	sprintf(Query, "DELETE FROM `information`");
+
+	if (mysql_query(m_SessionConnector, Query) == 0) {
+		return true;
+	}
+	return false;
+}
+
 bool DataBase::TryLogin(const std::string & ID, const std::string & Password, std::string & UserName) {
 	char Query[MaxQuerySize] = { "\0" };
 	sprintf(Query, "SELECT* FROM `information` WHERE `id` = '%s' and `password` = '%s'", ID.c_str(), Password.c_str());
@@ -108,7 +118,7 @@ bool DataBase::GetSessionInformation(SessionInformation & Information, const siz
 	return false;
 }
 
-bool DataBase::TryJoinSession(const std::string & SessionName, const bool & UsePassword, const std::string & Password) {
+bool DataBase::TryJoinSession(int& SessionID, const std::string & SessionName, const bool & UsePassword, const std::string & Password) {
 	char Query[MaxQuerySize] = { "\0" };
 
 	if (UsePassword) {
@@ -128,8 +138,10 @@ bool DataBase::TryJoinSession(const std::string & SessionName, const bool & UseP
 				for (size_t i = 0; i < Result->field_count; i++) {
 					Stream << Rows[i] << std::endl;
 				}
+				Stream >> SessionInfo;
 
-				if (SessionInfo.m_CurrentPlayer + 1 < SessionInfo.m_MaxPlayer) {
+				if (SessionInfo.m_CurrentPlayer + 1 <= SessionInfo.m_MaxPlayer) {
+					SessionID = SessionInfo.m_SessionID;
 					mysql_free_result(Result);
 					return true;
 				}
@@ -150,13 +162,12 @@ bool DataBase::InsertNewAccount(const std::string & UserName, const std::string 
 	return false;
 }
 
-bool DataBase::InsertNewSession(const std::string & SessionName, const int & MaxPlayer, const bool & bUsePassword, const std::string & Password) {
+bool DataBase::InsertNewSession(int& SessionID, const std::string & SessionName, const int & MaxPlayer, const bool & bUsePassword, const std::string & Password) {
 	char Query[MaxQuerySize] = { "\0" };
 	sprintf(Query, "SELECT* FROM `information`");
 
 	if (mysql_query(m_SessionConnector, Query) == 0) {
 		MYSQL_RES* Result = mysql_store_result(m_SessionConnector);
-		int SessionID = -1;
 		if (Result) {
 			SessionID = Result->row_count + 1;
 		}
@@ -164,7 +175,7 @@ bool DataBase::InsertNewSession(const std::string & SessionName, const int & Max
 
 		if (SessionID >= 0) {
 			memset(Query, 0, MaxQuerySize);
-			sprintf(Query, "INSERT INTO `information` (`session_id`, `session_name`, `max_player`, `use_password`, `session_password`) values ('%d', '%s', '%d', '%d', '%s')", SessionID, SessionName.c_str(), MaxPlayer, bUsePassword, Password.c_str());
+			sprintf(Query, "INSERT INTO `information` (`session_id`, `session_name`, `max_player`, `use_password`, `session_password`) values ('%d', '%s', '%d', '%d', '%s')", SessionID, SessionName.c_str(), MaxPlayer, bUsePassword, (bUsePassword ? Password.c_str() : "0"));
 
 			if (mysql_query(m_SessionConnector, Query) == 0) {
 				return true;

@@ -4,8 +4,8 @@
 
 PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_DataBase(nullptr) {
 	m_DataBase = new DataBase;
-	if (!m_DataBase) {
-		throw "";
+	if (!m_DataBase || !m_DataBase->ClearAllSessions()) {
+		throw "Init DataBase Failure!";
 	}
 
 	m_Processor.push_back(std::bind(&PacketProcessor::Login, this, std::placeholders::_1, std::placeholders::_2));
@@ -70,14 +70,14 @@ void PacketProcessor::NewAccount(SOCKETINFO* Info, std::stringstream& RecvStream
 void PacketProcessor::CreateSession(SOCKETINFO* Info, std::stringstream& RecvStream) {
 	std::stringstream SendStream;
 	std::string SessionName, Password;
-	int MaxPlayer;
+	int MaxPlayer, SessionID = -1;
 	bool UsePassword;
 	RecvStream >> SessionName >> MaxPlayer >> UsePassword >> Password;
 
 	if (Info && m_DataBase && m_Server) {
-		if (m_DataBase->IsItExistSessionInfo(SessionName) && m_DataBase->InsertNewSession(SessionName, MaxPlayer, UsePassword, Password)) {
+		if (m_DataBase->IsItExistSessionInfo(SessionName) && m_DataBase->InsertNewSession(SessionID, SessionName, MaxPlayer, UsePassword, Password)) {
 			std::cout << "Server : Create Session Succeed! - " << Info->m_Socket << '\t' << SessionName << std::endl;
-			SendStream << EPMT_CREATESESSION << std::endl << EPFT_SUCCEED << std::endl;
+			SendStream << EPMT_CREATESESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl;
 			m_Server->Send(Info, SendStream);
 			return;
 		}
@@ -97,13 +97,14 @@ void PacketProcessor::JoinSession(SOCKETINFO* Info, std::stringstream& RecvStrea
 	std::stringstream SendStream;
 	std::string SessionName, Password;
 	bool bUsePassword;
+	int SessionID = -1;
 
 	RecvStream >> SessionName >> bUsePassword >> Password;
 
 	if (Info && m_DataBase && m_Server && SessionName.length() > 0) {
-		if (m_DataBase->TryJoinSession(SessionName, bUsePassword, Password)) {
+		if (m_DataBase->TryJoinSession(SessionID, SessionName, bUsePassword, Password)) {
 			std::cout << "Join Session Is Succeed!! - " << Info->m_Socket << '\t' << SessionName << std::endl;
-			SendStream << EPMT_JOINSESSION << std::endl << EPFT_SUCCEED << std::endl;
+			SendStream << EPMT_JOINSESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl;
 			m_Server->Send(Info, SendStream);
 			return;
 		}

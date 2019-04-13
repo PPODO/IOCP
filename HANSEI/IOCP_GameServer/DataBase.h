@@ -1,6 +1,10 @@
 #pragma once
 #pragma comment(lib, "libmysql.lib")
 #include <mysql.h>
+#include <vector>
+#include <map>
+
+static const size_t MaxQuerySize = 256;
 
 class DataBase {
 private:
@@ -12,6 +16,7 @@ public:
 	~DataBase();
 
 public:
-
+	bool TryJoinGame(struct GAMEPACKET*& Packet);
+	bool TryDisconnectGame(const int& SessionID, std::map<int, std::vector<struct GAMEPACKET>>& SessionList);
 
 };

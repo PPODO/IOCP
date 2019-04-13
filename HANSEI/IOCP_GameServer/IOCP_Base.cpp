@@ -1,5 +1,4 @@
 #include "IOCP_Base.h"
-#include "GamePlayPacket.h"
 #include <iostream>
 
 IOCP_Base::IOCP_Base(const int Port) : m_Socket(nullptr), m_hIOCP(nullptr) {
@@ -25,7 +24,8 @@ void IOCP_Base::Start() {
 	std::cout << "Server : Start Login Server!!\n";
 
 	DWORD RecvBytes = 0, Flags = 0;
-	SOCKETINFO* SocketInfo;
+	CLIENTPACKETINFORMATION* ClientPacketInfo = nullptr;
+	SOCKETINFO* SocketInfo = nullptr;
 	SOCKET ClientSocket;
 	while (true) {
 		if (!m_Socket->AcceptClientSocket(ClientSocket)) {
@@ -40,12 +40,10 @@ void IOCP_Base::Start() {
 
 		m_hIOCP = CreateIoCompletionPort((HANDLE)ClientSocket, m_hIOCP, (DWORD)SocketInfo, 0);
 
-		if (WSARecv(SocketInfo->m_Socket, &SocketInfo->m_DataBuffer, 1, &RecvBytes, &Flags, &SocketInfo->m_Overlapped, nullptr) == INVALID_SOCKET) {
-			if (WSAGetLastError() != WSA_IO_PENDING) {
-				std::cout << "WSA Recv Error! - " << WSAGetLastError() << std::endl;
-				break;
-			}
-		}
+		ClientPacketInfo = new CLIENTPACKETINFORMATION(sizeof(GAMEPACKET));
+		m_Clients.insert(std::make_pair(ClientSocket, ClientPacketInfo));
+
+		Recv(SocketInfo);
 	}
 }
 
@@ -59,14 +57,14 @@ bool IOCP_Base::Init() {
 bool IOCP_Base::Recv(SOCKETINFO* Info) {
 	DWORD RecvBytes = 0, Flags = 0;
 
-	memset(&Info->m_Overlapped, 0, sizeof(WSAOVERLAPPED));
+	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
 	memset(Info->m_MessageBuffer, 0, MaxMessageBuffer);
-	Info->m_DataBuffer.len = MaxMessageBuffer;
+	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
 	Info->m_SendBytes = Info->m_RecvBytes = 0;
 
 	if (WSARecv(Info->m_Socket, &Info->m_DataBuffer, 1, &RecvBytes, &Flags, &Info->m_Overlapped, nullptr) == INVALID_SOCKET) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
-			std::cout << "WSA Recv Error! - " << WSAGetLastError() << std::endl;
+			std::cout << "WSA Recv Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
 			return false;
 		}
 	}
@@ -76,14 +74,31 @@ bool IOCP_Base::Recv(SOCKETINFO* Info) {
 bool IOCP_Base::Send(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	DWORD SendBytes = 0, Flags = 0;
 
-	memset(&Info->m_Overlapped, 0, sizeof(WSAOVERLAPPED));
+	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
 	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
 	Info->m_DataBuffer.buf = (char*)Packet;
 	Info->m_SendBytes = Info->m_RecvBytes = 0;
 
 	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, Flags, nullptr, nullptr) == INVALID_SOCKET) {
 		if (WSAGetLastError() != WSA_IO_PENDING) {
-			std::cout << "WSA Send Error! - " << WSAGetLastError() << std::endl;
+			std::cout << "WSA Send Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
+			return false;
+		}
+	}
+	return true;
+}
+
+bool IOCP_Base::Send(SOCKETINFO* Info, GAMEPACKET& Packet) {
+	DWORD SendBytes = 0, Flags = 0;
+
+	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
+	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
+	Info->m_DataBuffer.buf = (char*)&Packet;
+	Info->m_SendBytes = Info->m_RecvBytes = 0;
+
+	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, Flags, nullptr, nullptr) == INVALID_SOCKET) {
+		if (WSAGetLastError() != WSA_IO_PENDING) {
+			std::cout << "WSA Send Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
 			return false;
 		}
 	}

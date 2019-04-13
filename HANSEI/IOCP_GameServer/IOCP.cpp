@@ -1,8 +1,9 @@
 #include "IOCP.h"
-#include "GamePlayPacket.h"
 #include "PacketProcessor.h"
+#include "GamePlayPacket.h"
 #include <iostream>
 #include <string>
+#include <memory>
 
 IOCP::IOCP(const int Port) : IOCP_Base(Port), m_Processor(nullptr) {
 	m_Processor = new PacketProcessor(this);
@@ -51,26 +52,49 @@ void IOCP::ProcessWorkerThread() {
 		}
 
 		if (RecvBytes == 0) {
-			std::cout << "Server : Disconnet Socket - " << EventSocket->m_Socket << std::endl;
 			if (EventSocket) {
+				auto Client = m_Clients.find(EventSocket->m_Socket);
+				if (Client != m_Clients.end() && Client->second) {
+					delete Client->second;
+				}
+				std::cout << "Server : Disconnet Socket - " << EventSocket->m_Socket << std::endl;
+				m_Clients.erase(EventSocket->m_Socket);
 				closesocket(EventSocket->m_Socket);
 				delete EventSocket;
 			}
 			continue;
 		}
 
-		try {
-			GAMEPACKET* Packet = (GAMEPACKET*)EventSocket->m_DataBuffer.buf;
+		auto Client = m_Clients.find(EventSocket->m_Socket);
+		if (Client != m_Clients.cend()) {
+			try {
+				// Packet Combination
+				char* PacketBuffer = Client->second->m_PacketBuffer;
+				if (PacketBuffer) {
+					if (Client->second->GetPacketSize() > Client->second->m_PrevPacketSize) {
+						memcpy(PacketBuffer + Client->second->m_PrevPacketSize, EventSocket->m_DataBuffer.buf, RecvBytes);
+						Client->second->m_PrevPacketSize += RecvBytes;
+					}
+					if (Client->second->GetPacketSize() <= Client->second->m_PrevPacketSize) {
+						GAMEPACKET* Packet = (GAMEPACKET*)PacketBuffer;
+						if (Packet) {
+							if (m_Processor && Packet && static_cast<size_t>(Packet->m_MessageType) >= 0 && Packet->m_MessageType < EPACKETMESSAGETYPE::EPMT_COUNT && m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))) {
+								m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))(EventSocket, Packet);
+							}
+							else {
+								throw "Unknown Packet!";
+							}
+						}
+						Client->second->m_PrevPacketSize = 0;
+						memset(Client->second->m_PacketBuffer, 0, MaxMessageBuffer);
+					}
+				}
+			}
+			catch (const std::string& Exception) {
+				std::cout << Exception << std::endl;
+			}
+		}
 
-			if (m_Processor && Packet && static_cast<size_t>(Packet->m_MessageType) >= 0 && Packet->m_MessageType < EPACKETMESSAGETYPE::EPMT_COUNT && m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))) {
-				m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))(EventSocket, Packet);
-			}
-			else {
-				throw "Unknown Packet!";
-			}
-		}
-		catch (const std::string& Exception) {
-			std::cout << Exception << std::endl;
-		}
+		Recv(EventSocket);
 	}
 }

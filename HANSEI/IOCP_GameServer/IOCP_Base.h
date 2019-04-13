@@ -1,7 +1,9 @@
 #pragma once
 #include "Socket.h"
+#include "GamePlayPacket.h"
+#include <map>
 
-const size_t MaxMessageBuffer = 1024;
+const size_t MaxMessageBuffer = 512;
 
 typedef struct {
 	WSAOVERLAPPED m_Overlapped;
@@ -11,10 +13,29 @@ typedef struct {
 	SOCKET m_Socket;
 }SOCKETINFO;
 
+struct CLIENTPACKETINFORMATION {
+private:
+	size_t m_PacketSize;
+
+public:
+	size_t m_PrevPacketSize;
+	char m_PacketBuffer[MaxMessageBuffer];
+
+public:
+	CLIENTPACKETINFORMATION(const size_t& PacketSize) : m_PacketSize(PacketSize), m_PrevPacketSize(), m_PacketBuffer("\0") {};
+
+public:
+	inline const size_t& GetPacketSize() const { return m_PacketSize; }
+
+};
+
 class IOCP_Base {
 private:
 	Socket* m_Socket;
 	HANDLE m_hIOCP;
+
+protected:
+	std::map<SOCKET, CLIENTPACKETINFORMATION*> m_Clients;
 
 public:
 	IOCP_Base(const int Port);
@@ -31,6 +52,7 @@ protected:
 public:
 	bool Recv(SOCKETINFO* Info);
 	bool Send(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	bool Send(SOCKETINFO* Info, struct GAMEPACKET& Packet);
 
 public:
 	HANDLE GetIOCPHandle() const { return m_hIOCP; }
