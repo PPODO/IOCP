@@ -2,10 +2,14 @@
 #include <Windows.h>
 #include <sstream>
 
+static const int NickNameMaxLen = 15;
+
 enum class EPACKETMESSAGETYPE : unsigned char {
 	EPMT_JOIN,
 	EPMT_UPDATE,
 	EPMT_DISCONNECT,
+	EPMT_STARTGAME,
+	EPMT_SPAWNITEM,
 	EPMT_NEWPLAYER,
 	EPMT_DISCONNECTOTHER,
 	EPMT_COUNT
@@ -18,6 +22,12 @@ enum class EPACKETFAILEDTYPE : unsigned char {
 	EPFT_COUNT
 };
 
+enum class EPACKETTYPE : unsigned char {
+	EPT_PLAYER,
+	EPT_SPAWNER,
+	EPT_COUNT
+};
+
 struct VECTOR {
 	float x, y, z;
 
@@ -26,17 +36,34 @@ public:
 
 };
 
-struct GAMEPACKET {
+struct FInputMotionData {
+public:
+	float m_Steering;
+	float m_Throttle;
+	bool m_HandBreak;
+
+	FInputMotionData() : m_Steering(0.f), m_Throttle(0.f), m_HandBreak(false) {};
+	FInputMotionData(float& Steering, float Throttle, bool HandBreak) : m_Steering(Steering), m_Throttle(Throttle), m_HandBreak(HandBreak) {};
+};
+
+struct PACKET {
+	EPACKETTYPE m_PacketType;
 	EPACKETMESSAGETYPE m_MessageType;
 	EPACKETFAILEDTYPE m_FailedReason;
+
+public:
+	PACKET() : m_PacketType(EPACKETTYPE::EPT_COUNT), m_MessageType(EPACKETMESSAGETYPE::EPMT_COUNT), m_FailedReason(EPACKETFAILEDTYPE::EPFT_COUNT) {};
+
+};
+
+struct GAMEPACKET : public PACKET {
 	int m_SessionID;
 	int m_UniqueKey;
 	VECTOR m_Location;
 	VECTOR m_Rotation;
+	FInputMotionData m_VehicleData;
 	UINT_PTR m_Socket;
-
-public:
-	GAMEPACKET() : m_MessageType(EPACKETMESSAGETYPE::EPMT_COUNT), m_FailedReason(EPACKETFAILEDTYPE::EPFT_COUNT) {};
+	char m_PlayerNickName[NickNameMaxLen];
 
 public:
 	void operator=(const GAMEPACKET& Data) {
@@ -44,7 +71,13 @@ public:
 		this->m_Location = Data.m_Location;
 		this->m_Rotation = Data.m_Rotation;
 		this->m_Socket = Data.m_Socket;
+		this->m_VehicleData = Data.m_VehicleData;
 	}
+
+};
+
+struct SPAWNERPACKET : public PACKET {
+
 
 };
 

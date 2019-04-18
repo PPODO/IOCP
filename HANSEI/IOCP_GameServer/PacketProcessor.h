@@ -1,11 +1,12 @@
 #pragma once
 #include "DataBase.h"
 #include <functional>
+#include <utility>
 #include <vector>
 #include <mutex>
 #include <map>
 
-typedef std::function<void(SOCKETINFO*, struct GAMEPACKET*&)> Processor;
+typedef std::function<void(SOCKETINFO*, struct PACKET*&)> Processor;
 
 class PacketProcessor {
 private:
@@ -22,17 +23,20 @@ public:
 	~PacketProcessor();
 
 private:
-	void JoinGame(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
-	void UpdatePlayerInformation(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
-	void DisconnectPlayer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	void JoinGame(SOCKETINFO* Info, struct PACKET*& Packet);
+	void UpdatePlayerInformation(SOCKETINFO* Info, struct PACKET*& Packet);
+	void DisconnectPlayer(SOCKETINFO* Info, struct PACKET*& Packet);
+	void StartGame(SOCKETINFO* Info, struct PACKET*& Packet);
+
+
 
 private:
 	void BroadCast(struct GAMEPACKET*& Packet, const std::vector<struct GAMEPACKET>& PlayerList);
 	void BroadCast(const std::vector<struct GAMEPACKET>& PlayerList, struct GAMEPACKET*& Packet);
 
 public:
-	Processor& operator[](const size_t& Index) {
-		return m_Processor[Index];
+	Processor& operator[](const EPACKETMESSAGETYPE& MessageType) {
+		return m_Processor[static_cast<size_t>(MessageType)];
 	}
 
 };

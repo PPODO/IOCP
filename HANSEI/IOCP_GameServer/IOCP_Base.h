@@ -14,18 +14,13 @@ typedef struct {
 }SOCKETINFO;
 
 struct CLIENTPACKETINFORMATION {
-private:
-	size_t m_PacketSize;
-
 public:
+	size_t m_PacketSize;
 	size_t m_PrevPacketSize;
 	char m_PacketBuffer[MaxMessageBuffer];
 
 public:
-	CLIENTPACKETINFORMATION(const size_t& PacketSize) : m_PacketSize(PacketSize), m_PrevPacketSize(), m_PacketBuffer("\0") {};
-
-public:
-	inline const size_t& GetPacketSize() const { return m_PacketSize; }
+	CLIENTPACKETINFORMATION() : m_PacketSize(0), m_PrevPacketSize(0), m_PacketBuffer("\0") {};
 
 };
 

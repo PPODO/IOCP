@@ -40,7 +40,8 @@ void IOCP_Base::Start() {
 
 		m_hIOCP = CreateIoCompletionPort((HANDLE)ClientSocket, m_hIOCP, (DWORD)SocketInfo, 0);
 
-		ClientPacketInfo = new CLIENTPACKETINFORMATION(sizeof(GAMEPACKET));
+		ClientPacketInfo = new CLIENTPACKETINFORMATION;
+		memset(ClientPacketInfo->m_PacketBuffer, 0, MaxMessageBuffer);
 		m_Clients.insert(std::make_pair(ClientSocket, ClientPacketInfo));
 
 		Recv(SocketInfo);
@@ -60,6 +61,7 @@ bool IOCP_Base::Recv(SOCKETINFO* Info) {
 	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
 	memset(Info->m_MessageBuffer, 0, MaxMessageBuffer);
 	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
+	Info->m_DataBuffer.buf = Info->m_MessageBuffer;
 	Info->m_SendBytes = Info->m_RecvBytes = 0;
 
 	if (WSARecv(Info->m_Socket, &Info->m_DataBuffer, 1, &RecvBytes, &Flags, &Info->m_Overlapped, nullptr) == INVALID_SOCKET) {

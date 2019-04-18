@@ -71,22 +71,40 @@ void IOCP::ProcessWorkerThread() {
 				// Packet Combination
 				char* PacketBuffer = Client->second->m_PacketBuffer;
 				if (PacketBuffer) {
-					if (Client->second->GetPacketSize() > Client->second->m_PrevPacketSize) {
+					// Get Packet Type And Set Max Size
+					if (Client->second->m_PacketSize <= 0) {
+						EPACKETTYPE PacketType = static_cast<EPACKETTYPE>(PacketBuffer[0]);
+						switch (PacketType) {
+						case EPACKETTYPE::EPT_PLAYER:
+							std::cout << "Packet Type : " << static_cast<int>(EPACKETTYPE::EPT_PLAYER) << std::endl;
+							Client->second->m_PacketSize = sizeof(GAMEPACKET);
+							break;
+						case EPACKETTYPE::EPT_SPAWNER:
+							std::cout << "Packet Type : " << static_cast<int>(EPACKETTYPE::EPT_SPAWNER) << std::endl;
+							Client->second->m_PacketSize = sizeof(SPAWNERPACKET);
+							break;
+						}
+					}
+					
+					// Processing Recv Packet
+					if (Client->second->m_PacketSize > Client->second->m_PrevPacketSize) {
 						memcpy(PacketBuffer + Client->second->m_PrevPacketSize, EventSocket->m_DataBuffer.buf, RecvBytes);
 						Client->second->m_PrevPacketSize += RecvBytes;
 					}
-					if (Client->second->GetPacketSize() <= Client->second->m_PrevPacketSize) {
-						GAMEPACKET* Packet = (GAMEPACKET*)PacketBuffer;
+					if (Client->second->m_PacketSize <= Client->second->m_PrevPacketSize) {
+						PACKET* Packet = (PACKET*)PacketBuffer;
 						if (Packet) {
-							if (m_Processor && Packet && static_cast<size_t>(Packet->m_MessageType) >= 0 && Packet->m_MessageType < EPACKETMESSAGETYPE::EPMT_COUNT && m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))) {
-								m_Processor->operator[](static_cast<size_t>(Packet->m_MessageType))(EventSocket, Packet);
+							if (m_Processor && Packet && static_cast<size_t>(Packet->m_PacketType) >= 0 && Packet->m_PacketType < EPACKETTYPE::EPT_COUNT && static_cast<size_t>(Packet->m_MessageType) >= 0 && Packet->m_MessageType < EPACKETMESSAGETYPE::EPMT_COUNT && m_Processor->operator[](Packet->m_MessageType)) {
+								m_Processor->operator[](Packet->m_MessageType)(EventSocket, Packet);
 							}
 							else {
 								throw "Unknown Packet!";
 							}
 						}
-						Client->second->m_PrevPacketSize = 0;
-						memset(Client->second->m_PacketBuffer, 0, MaxMessageBuffer);
+						memset(PacketBuffer, 0, Client->second->m_PacketSize);
+						memcpy(PacketBuffer, PacketBuffer + Client->second->m_PacketSize, (Client->second->m_PrevPacketSize - Client->second->m_PacketSize));
+						Client->second->m_PrevPacketSize -= Client->second->m_PacketSize;
+						Client->second->m_PacketSize = 0;
 					}
 				}
 			}

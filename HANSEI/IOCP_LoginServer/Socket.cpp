@@ -68,6 +68,6 @@ bool Socket::AcceptClientSocket(SOCKET& ClientSocket) {
 		std::cout << "Server : Accept Failure!\n";
 		return false;
 	}
-	std::cout << "Server : " << ClientSocket << " Accept Successful!\n";
+	std::cout << "Server : " << ClientSocket << " Accept Successful! : " << ntohs(ClientAddr.sin_port) << std::endl;
 	return true;
 }
