@@ -28,6 +28,11 @@ enum class EPACKETTYPE : unsigned char {
 	EPT_COUNT
 };
 
+enum class EITEMTYPE : unsigned char {
+	EIT_HEAL,
+	EIT_COUNT
+};
+
 struct VECTOR {
 	float x, y, z;
 
@@ -50,9 +55,21 @@ struct PACKET {
 	EPACKETTYPE m_PacketType;
 	EPACKETMESSAGETYPE m_MessageType;
 	EPACKETFAILEDTYPE m_FailedReason;
+	UINT_PTR m_Socket;
 
 public:
 	PACKET() : m_PacketType(EPACKETTYPE::EPT_COUNT), m_MessageType(EPACKETMESSAGETYPE::EPMT_COUNT), m_FailedReason(EPACKETFAILEDTYPE::EPFT_COUNT) {};
+
+};
+
+struct ITEM {
+	EITEMTYPE m_ItemType;
+	bool m_bIsActivated;
+	size_t m_SpawnerID;
+	size_t m_Index;
+
+public:
+	ITEM() : m_ItemType(EITEMTYPE::EIT_COUNT), m_bIsActivated(false), m_SpawnerID(0), m_Index(0) {};
 
 };
 
@@ -62,23 +79,23 @@ struct GAMEPACKET : public PACKET {
 	VECTOR m_Location;
 	VECTOR m_Rotation;
 	FInputMotionData m_VehicleData;
-	UINT_PTR m_Socket;
+	ITEM m_ItemInformation;
 	char m_PlayerNickName[NickNameMaxLen];
 
 public:
 	void operator=(const GAMEPACKET& Data) {
-		this->m_UniqueKey = Data.m_UniqueKey;
+		this->m_Socket = Data.m_Socket;
 		this->m_Location = Data.m_Location;
 		this->m_Rotation = Data.m_Rotation;
-		this->m_Socket = Data.m_Socket;
+		this->m_UniqueKey = Data.m_UniqueKey;
 		this->m_VehicleData = Data.m_VehicleData;
+		this->m_ItemInformation = Data.m_ItemInformation;
 	}
 
 };
 
 struct SPAWNERPACKET : public PACKET {
-
-
+	ITEM m_ItemInformation;
 };
 
 class Session {

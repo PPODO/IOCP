@@ -40,7 +40,7 @@ void IOCP_Base::Start() {
 
 		m_hIOCP = CreateIoCompletionPort((HANDLE)ClientSocket, m_hIOCP, (DWORD)SocketInfo, 0);
 
-		ClientPacketInfo = new CLIENTPACKETINFORMATION;
+		ClientPacketInfo = new CLIENTPACKETINFORMATION(sizeof(GAMEPACKET));
 		memset(ClientPacketInfo->m_PacketBuffer, 0, MaxMessageBuffer);
 		m_Clients.insert(std::make_pair(ClientSocket, ClientPacketInfo));
 
@@ -73,36 +73,22 @@ bool IOCP_Base::Recv(SOCKETINFO* Info) {
 	return true;
 }
 
-bool IOCP_Base::Send(SOCKETINFO* Info, GAMEPACKET*& Packet) {
+bool IOCP_Base::Send(SOCKETINFO* Info, PACKET* Packet) {
 	DWORD SendBytes = 0, Flags = 0;
 
-	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
-	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
-	Info->m_DataBuffer.buf = (char*)Packet;
-	Info->m_SendBytes = Info->m_RecvBytes = 0;
+	if (Packet && static_cast<int>(Packet->m_PacketType) >= 0 && Packet->m_PacketType < EPACKETTYPE::EPT_COUNT) {
+		ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
+		Info->m_DataBuffer.len = Packet->m_PacketType == EPACKETTYPE::EPT_PLAYER ? sizeof(GAMEPACKET) : sizeof(SPAWNERPACKET);
+		Info->m_DataBuffer.buf = (char*)Packet;
+		Info->m_SendBytes = Info->m_RecvBytes = 0;
 
-	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, Flags, nullptr, nullptr) == INVALID_SOCKET) {
-		if (WSAGetLastError() != WSA_IO_PENDING) {
-			std::cout << "WSA Send Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
-			return false;
+		if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, Flags, nullptr, nullptr) == INVALID_SOCKET) {
+			if (WSAGetLastError() != WSA_IO_PENDING) {
+				std::cout << "WSA Send Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
+				return false;
+			}
 		}
+		return true;
 	}
-	return true;
-}
-
-bool IOCP_Base::Send(SOCKETINFO* Info, GAMEPACKET& Packet) {
-	DWORD SendBytes = 0, Flags = 0;
-
-	ZeroMemory(&Info->m_Overlapped, sizeof(WSAOVERLAPPED));
-	Info->m_DataBuffer.len = sizeof(GAMEPACKET);
-	Info->m_DataBuffer.buf = (char*)&Packet;
-	Info->m_SendBytes = Info->m_RecvBytes = 0;
-
-	if (WSASend(Info->m_Socket, &Info->m_DataBuffer, 1, &SendBytes, Flags, nullptr, nullptr) == INVALID_SOCKET) {
-		if (WSAGetLastError() != WSA_IO_PENDING) {
-			std::cout << "WSA Send Error! - " << WSAGetLastError() << '\t' << Info->m_Socket << std::endl;
-			return false;
-		}
-	}
-	return true;
+	return false;
 }

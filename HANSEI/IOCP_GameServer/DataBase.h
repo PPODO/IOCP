@@ -17,6 +17,6 @@ public:
 
 public:
 	bool TryJoinGame(struct GAMEPACKET*& Packet);
-	bool TryDisconnectGame(const int& SessionID, std::map<int, std::vector<struct GAMEPACKET>>& SessionList);
+	bool TryDisconnectGame(const int& SessionID, std::map<int, std::tuple<int, std::vector<struct GAMEPACKET>>>& SessionList);
 
 };

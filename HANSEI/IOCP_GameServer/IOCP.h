@@ -3,7 +3,8 @@
 #include <thread>
 #include <vector>
 #include <mutex>
-#include <queue>
+
+const int MaxSavePacketCount = 50;
 
 class IOCP : public IOCP_Base {
 private:
@@ -14,7 +15,7 @@ private:
 	class PacketProcessor* m_Processor;
 
 private:
-
+	inline void ClearClientPacketBuffer(std::map<SOCKET, CLIENTPACKETINFORMATION*>::iterator& It);
 
 protected:
 	virtual bool CreateWorkerThread() override;
@@ -28,3 +29,9 @@ public:
 	virtual void Start() override;
 
 };
+
+inline void IOCP::ClearClientPacketBuffer(std::map<SOCKET, CLIENTPACKETINFORMATION*>::iterator& It) {
+	memset(It->second->m_PacketBuffer, 0, It->second->GetPacketSize());
+	memcpy(It->second->m_PacketBuffer, It->second->m_PacketBuffer + It->second->GetPacketSize(), (It->second->m_PrevPacketSize - It->second->GetPacketSize()));
+	It->second->m_PrevPacketSize -= It->second->GetPacketSize();
+}

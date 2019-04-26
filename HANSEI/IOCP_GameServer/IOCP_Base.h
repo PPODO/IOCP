@@ -3,7 +3,7 @@
 #include "GamePlayPacket.h"
 #include <map>
 
-const size_t MaxMessageBuffer = 512;
+const size_t MaxMessageBuffer = 1024;
 
 typedef struct {
 	WSAOVERLAPPED m_Overlapped;
@@ -14,13 +14,18 @@ typedef struct {
 }SOCKETINFO;
 
 struct CLIENTPACKETINFORMATION {
-public:
+private:
 	size_t m_PacketSize;
+
+public:
 	size_t m_PrevPacketSize;
 	char m_PacketBuffer[MaxMessageBuffer];
 
 public:
-	CLIENTPACKETINFORMATION() : m_PacketSize(0), m_PrevPacketSize(0), m_PacketBuffer("\0") {};
+	CLIENTPACKETINFORMATION(const size_t& PacketSize) : m_PacketSize(PacketSize), m_PrevPacketSize(0), m_PacketBuffer("\0") {};
+
+public:
+	size_t GetPacketSize() const { return m_PacketSize; }
 
 };
 
@@ -46,8 +51,7 @@ protected:
 
 public:
 	bool Recv(SOCKETINFO* Info);
-	bool Send(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
-	bool Send(SOCKETINFO* Info, struct GAMEPACKET& Packet);
+	bool Send(SOCKETINFO* Info, PACKET* Packet);
 
 public:
 	HANDLE GetIOCPHandle() const { return m_hIOCP; }
