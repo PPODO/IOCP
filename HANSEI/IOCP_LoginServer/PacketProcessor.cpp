@@ -77,7 +77,7 @@ void PacketProcessor::CreateSession(SOCKETINFO* Info, std::stringstream& RecvStr
 	if (Info && m_DataBase && m_Server) {
 		if (m_DataBase->IsItExistSessionInfo(SessionName) && m_DataBase->InsertNewSession(SessionID, SessionName, MaxPlayer, UsePassword, Password)) {
 			std::cout << "Server : Create Session Succeed! - " << Info->m_Socket << '\t' << SessionName << std::endl;
-			SendStream << EPMT_CREATESESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl;
+			SendStream << EPMT_CREATESESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl << SessionName << std::endl;
 			m_Server->Send(Info, SendStream);
 			return;
 		}
@@ -104,7 +104,7 @@ void PacketProcessor::JoinSession(SOCKETINFO* Info, std::stringstream& RecvStrea
 	if (Info && m_DataBase && m_Server && SessionName.length() > 0) {
 		if (m_DataBase->TryJoinSession(SessionID, SessionName, bUsePassword, Password)) {
 			std::cout << "Join Session Is Succeed!! - " << Info->m_Socket << '\t' << SessionName << std::endl;
-			SendStream << EPMT_JOINSESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl;
+			SendStream << EPMT_JOINSESSION << std::endl << EPFT_SUCCEED << std::endl << SessionID << std::endl << SessionName << std::endl;
 			m_Server->Send(Info, SendStream);
 			return;
 		}

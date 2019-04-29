@@ -11,6 +11,7 @@ PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_DataBase(nu
 	m_Processor.push_back(std::bind(&PacketProcessor::UpdatePlayerInformation, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::DisconnectPlayer, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::StartGame, this, std::placeholders::_1, std::placeholders::_2));
+	m_Processor.push_back(std::bind(&PacketProcessor::ChangeReadyState, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::AddNewSpawnTimer, this, std::placeholders::_1, std::placeholders::_2));
 
 	m_DataBase = new DataBase;
@@ -28,7 +29,6 @@ PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_DataBase(nu
 							auto Session = m_Sessions.find(std::get<ETP_SESSIONID>(*Iterator));
 							if (Session != m_Sessions.cend()) {
 								BroadCast(std::get<ETP_PACKET>(*Iterator), std::get<ESI_PLAYERINFORMATION>(Session->second));
-								
 							}
 							delete std::get<ETP_PACKET>(*Iterator);
 							Iterator = m_TimerList.erase(Iterator);
@@ -38,6 +38,7 @@ PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_DataBase(nu
 					else {
 						delete std::get<ETP_PACKET>(*Iterator);
 						Iterator = m_TimerList.erase(Iterator);
+						continue;
 					}
 					++Iterator;
 				}
@@ -66,6 +67,8 @@ void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
 				Packet->m_Socket = Info->m_Socket;
 				Packet->m_UniqueKey = (++std::get<ESI_UNIQUEKEY>(Iterator->second));
+				Packet->m_RankInformation.m_CurrentRank = std::get<ESI_PLAYERINFORMATION>(Iterator->second).size() + 1;
+				Packet->m_bIsLeader = false;
 
 				BroadCast(Packet, std::get<ESI_PLAYERINFORMATION>(Iterator->second));
 				BroadCast(std::get<ESI_PLAYERINFORMATION>(Iterator->second), Packet);
@@ -74,7 +77,7 @@ void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 
 				Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_JOIN;
 				m_Server->Send(Info, Packet);
-				std::cout << "Join Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_PlayerNickName << std::endl;
+				std::cout << "Join Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_PlayerNickName << '\t' << Packet->m_RankInformation.m_CurrentRank << std::endl;
 				return;
 			}
 			Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
@@ -90,13 +93,15 @@ void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
 				Packet->m_Socket = Info->m_Socket;
 				Packet->m_UniqueKey = 0;
+				Packet->m_RankInformation.m_CurrentRank = 1;
+				Packet->m_bIsLeader = true;
 
 				std::vector<GAMEPACKET> PlayerList;
 				PlayerList.push_back(*Packet);
 				m_Sessions.insert(std::make_pair(Packet->m_SessionID, std::make_tuple(0, PlayerList)));
 
 				m_Server->Send(Info, Packet);
-				std::cout << "Join Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_PlayerNickName << std::endl;
+				std::cout << "Join Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_PlayerNickName << '\t' << Packet->m_RankInformation.m_CurrentRank << std::endl;
 				return;
 			}
 			Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
@@ -118,7 +123,8 @@ void PacketProcessor::UpdatePlayerInformation(SOCKETINFO* Info, GAMEPACKET*& Pac
 				Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 				Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_UPDATE;
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
-
+				Packet->m_RankInformation.m_CurrentRank = UpdatePlayerRanking(std::get<ESI_PLAYERINFORMATION>(Session->second), Character);
+				
 				BroadCast(Packet, std::get<ESI_PLAYERINFORMATION>(Session->second));
 			}
 		}
@@ -136,6 +142,8 @@ void PacketProcessor::DisconnectPlayer(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 					Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 					Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_DISCONNECTOTHER;
 					Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
+
+					ResetPlayerRanking(std::get<ESI_PLAYERINFORMATION>(Iterator->second), Packet);
 
 					BroadCast(Packet, std::get<ESI_PLAYERINFORMATION>(Iterator->second));
 					std::cout << "Disconnect Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_SessionID << '\t' << Packet->m_UniqueKey << std::endl;
@@ -167,6 +175,23 @@ void PacketProcessor::StartGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	}
 }
 
+void PacketProcessor::ChangeReadyState(SOCKETINFO* Info, GAMEPACKET *& Packet) {
+	if (Info && Packet) {
+		auto Iterator = m_Sessions.find(Packet->m_SessionID);
+		if (Iterator != m_Sessions.cend()) {
+			Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
+			Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_READY;
+			Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
+
+			BroadCast(Packet, std::get<ESI_PLAYERINFORMATION>(Iterator->second));
+
+			std::cout << "Change Ready State Succeed! - " << Info->m_Socket << std::endl;
+			return;
+		}
+		std::cout << "Change Ready State Failure - " << Info->m_Socket << std::endl;
+	}
+}
+
 void PacketProcessor::AddNewSpawnTimer(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	if (Packet && Info) {
 		SPAWNERPACKET* SendPacket = new SPAWNERPACKET;
@@ -187,6 +212,7 @@ void PacketProcessor::BroadCast(PACKET* Packet, const std::vector<struct GAMEPAC
 
 	for (auto It : PlayerList) {
 		Info->m_Socket = It.m_Socket;
+
 		m_Server->Send(Info, Packet);
 	}
 }
@@ -202,5 +228,38 @@ void PacketProcessor::BroadCast(const std::vector<struct GAMEPACKET>& PlayerList
 		It.m_FailedReason = Packet->m_FailedReason;
 
 		m_Server->Send(Info, &It);
+	}
+}
+
+int PacketProcessor::UpdatePlayerRanking(std::vector<struct GAMEPACKET>& CharacterLists, std::vector<struct GAMEPACKET>::iterator& Player) {
+	for (auto& It : CharacterLists) {
+		if (It.m_UniqueKey != (*Player).m_UniqueKey) {
+			if ((*Player).m_RankInformation.m_CurrentRank > It.m_RankInformation.m_CurrentRank) {
+				if ((*Player).m_RankInformation.m_CurrentLab > It.m_RankInformation.m_CurrentLab) {
+					SwapRanking(It.m_RankInformation.m_CurrentRank, (*Player).m_RankInformation.m_CurrentRank);
+				}
+				else if ((*Player).m_RankInformation.m_CurrentLab == It.m_RankInformation.m_CurrentLab) {
+					if ((*Player).m_RankInformation.m_CurrentSplinePoint > It.m_RankInformation.m_CurrentSplinePoint) {
+						SwapRanking(It.m_RankInformation.m_CurrentRank, (*Player).m_RankInformation.m_CurrentRank);
+					}
+					else if ((*Player).m_RankInformation.m_CurrentSplinePoint == It.m_RankInformation.m_CurrentSplinePoint) {
+						if ((*Player).m_RankInformation.m_SplinePointDistance < It.m_RankInformation.m_SplinePointDistance) {
+							SwapRanking(It.m_RankInformation.m_CurrentRank, (*Player).m_RankInformation.m_CurrentRank);
+						}
+					}
+				}
+			}
+		}
+	}
+	return (*Player).m_RankInformation.m_CurrentRank;
+}
+
+void PacketProcessor::ResetPlayerRanking(std::vector<struct GAMEPACKET>& CharacterList, const GAMEPACKET* Packet) {
+	for (auto It : CharacterList) {
+		if (It.m_UniqueKey != Packet->m_UniqueKey) {
+			if (It.m_RankInformation.m_CurrentRank > Packet->m_RankInformation.m_CurrentRank) {
+				It.m_RankInformation.m_CurrentRank -= 1;
+			}
+		}
 	}
 }

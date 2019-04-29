@@ -43,11 +43,23 @@ private:
 	void UpdatePlayerInformation(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void DisconnectPlayer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void StartGame(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	void ChangeReadyState(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void AddNewSpawnTimer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 
 private:
 	void BroadCast(PACKET* Packet, const std::vector<struct GAMEPACKET>& PlayerList);
 	void BroadCast(const std::vector<struct GAMEPACKET>& PlayerList, struct GAMEPACKET*& Packet);
+
+private:
+	int UpdatePlayerRanking(std::vector<struct GAMEPACKET>& CharacterLists, std::vector<struct GAMEPACKET>::iterator& Player);
+	void ResetPlayerRanking(std::vector<struct GAMEPACKET>& CharacterList, const GAMEPACKET* Packet);
+
+private:
+	inline void SwapRanking(int& A, int& B) {
+		int NewRank = A;
+		A = B;
+		B = NewRank;
+	}
 
 public:
 	Processor& operator[](const EPACKETMESSAGETYPE& MessageType) {

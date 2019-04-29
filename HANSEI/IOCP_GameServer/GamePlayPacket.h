@@ -9,6 +9,7 @@ enum class EPACKETMESSAGETYPE : unsigned char {
 	EPMT_UPDATE,
 	EPMT_DISCONNECT,
 	EPMT_STARTGAME,
+	EPMT_READY,
 	EPMT_SPAWNITEM,
 	EPMT_NEWPLAYER,
 	EPMT_DISCONNECTOTHER,
@@ -73,13 +74,34 @@ public:
 
 };
 
+struct RANK {
+	int m_CurrentRank;
+	int m_CurrentSplinePoint;
+	float m_SplinePointDistance;
+	int m_CurrentLab;
+
+public:
+	RANK() : m_CurrentRank(0), m_CurrentSplinePoint(0), m_SplinePointDistance(0.f), m_CurrentLab(0) {};
+
+public:
+	void operator=(const RANK& Rank) {
+		this->m_CurrentLab = Rank.m_CurrentLab;
+		this->m_CurrentSplinePoint = Rank.m_CurrentSplinePoint;
+		this->m_SplinePointDistance = Rank.m_SplinePointDistance;
+	}
+
+};
+
 struct GAMEPACKET : public PACKET {
 	int m_SessionID;
 	int m_UniqueKey;
 	VECTOR m_Location;
 	VECTOR m_Rotation;
 	FInputMotionData m_VehicleData;
+	bool m_bIsLeader;
+	bool m_bIsReady;
 	ITEM m_ItemInformation;
+	RANK m_RankInformation;
 	char m_PlayerNickName[NickNameMaxLen];
 
 public:
@@ -90,6 +112,9 @@ public:
 		this->m_UniqueKey = Data.m_UniqueKey;
 		this->m_VehicleData = Data.m_VehicleData;
 		this->m_ItemInformation = Data.m_ItemInformation;
+		this->m_RankInformation = Data.m_RankInformation;
+		this->m_bIsLeader = Data.m_bIsLeader;
+		this->m_bIsReady = Data.m_bIsReady;
 	}
 
 };
