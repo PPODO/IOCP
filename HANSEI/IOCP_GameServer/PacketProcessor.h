@@ -17,7 +17,6 @@ typedef std::function<void(SOCKETINFO*, struct GAMEPACKET*&)> Processor;
 
 class PacketProcessor {
 	enum { ETP_LASTTIME, ETP_DELAY, ETP_SESSIONID, ETP_PACKET };
-	enum { ESI_UNIQUEKEY, ESI_PLAYERINFORMATION };
 private:
 	std::mutex m_Lock;
 	DataBase* m_DataBase;
@@ -25,7 +24,7 @@ private:
 
 private:
 	std::vector<Processor> m_Processor;
-	std::map<int, std::tuple<int, std::vector<struct GAMEPACKET>>> m_Sessions;
+	std::map<int, struct SessionInformation> m_Sessions;
 
 private:
 	bool m_bIsStop;
@@ -42,7 +41,8 @@ private:
 	void JoinGame(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void UpdatePlayerInformation(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void DisconnectPlayer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
-	void StartGame(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	void PossessingVehicle(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	void CheckStartFlags(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void ChangeReadyState(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void AddNewSpawnTimer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 

@@ -54,7 +54,7 @@ bool DataBase::TryJoinGame(GAMEPACKET*& Packet) {
 	return false;
 }
 
-bool DataBase::TryDisconnectGame(const int& SessionID, std::map<int, std::tuple<int, std::vector<struct GAMEPACKET>>>& SessionList) {
+bool DataBase::TryDisconnectGame(const int& SessionID, std::map<int, SessionInformation>& SessionList) {
 	char Query[MaxQuerySize] = { "\0" };
 	sprintf(Query, "SELECT* FROM `information` WHERE `session_id` = '%d'", SessionID);
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <Windows.h>
 #include <sstream>
+#include <vector>
 
 static const int NickNameMaxLen = 15;
 
@@ -8,7 +9,8 @@ enum class EPACKETMESSAGETYPE : unsigned char {
 	EPMT_JOIN,
 	EPMT_UPDATE,
 	EPMT_DISCONNECT,
-	EPMT_STARTGAME,
+	EPMT_POSSESS,
+	EPMT_START,
 	EPMT_READY,
 	EPMT_SPAWNITEM,
 	EPMT_NEWPLAYER,
@@ -78,14 +80,14 @@ struct RANK {
 	int m_CurrentRank;
 	int m_CurrentSplinePoint;
 	float m_SplinePointDistance;
-	int m_CurrentLab;
+	int m_CurrentLap;
 
 public:
-	RANK() : m_CurrentRank(0), m_CurrentSplinePoint(0), m_SplinePointDistance(0.f), m_CurrentLab(0) {};
+	RANK() : m_CurrentRank(0), m_CurrentSplinePoint(0), m_SplinePointDistance(0.f), m_CurrentLap(0) {};
 
 public:
 	void operator=(const RANK& Rank) {
-		this->m_CurrentLab = Rank.m_CurrentLab;
+		this->m_CurrentLap = Rank.m_CurrentLap;
 		this->m_CurrentSplinePoint = Rank.m_CurrentSplinePoint;
 		this->m_SplinePointDistance = Rank.m_SplinePointDistance;
 	}
@@ -160,4 +162,14 @@ public:
 
 		return is;
 	}
+};
+
+struct SessionInformation {
+	size_t m_LastGeneratedKey;
+	size_t m_CanStartCount;
+	std::vector<GAMEPACKET> m_PlayerList;
+
+public:
+	SessionInformation() : m_LastGeneratedKey(0), m_CanStartCount(0) {};
+
 };
