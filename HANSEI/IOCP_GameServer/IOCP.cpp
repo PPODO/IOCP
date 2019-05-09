@@ -44,7 +44,6 @@ void IOCP::ProcessWorkerThread() {
 
 	while (true) {
 		if (GetQueuedCompletionStatus(GetIOCPHandle(), &RecvBytes, (PULONG_PTR)&CompletionKey, (LPOVERLAPPED*)&EventSocket, INFINITE) == 0) {
-			std::unique_lock<std::mutex> Lock(m_Lock);
 			if (WSAGetLastError() != ERROR_NETNAME_DELETED) {
 				std::cout << "Get Queued Completion Status Error!! - " << WSAGetLastError() << std::endl;
 				return;
@@ -52,16 +51,7 @@ void IOCP::ProcessWorkerThread() {
 		}
 
 		if (RecvBytes == 0) {
-			if (EventSocket) {
-				auto Client = m_Clients.find(EventSocket->m_Socket);
-				if (Client != m_Clients.end() && Client->second) {
-					delete Client->second;
-				}
-				std::cout << "Server : Disconnet Socket - " << EventSocket->m_Socket << std::endl;
-				m_Clients.erase(EventSocket->m_Socket);
-				closesocket(EventSocket->m_Socket);
-				delete EventSocket;
-			}
+			DeleteClientFromList(EventSocket);
 			continue;
 		}
 
@@ -94,7 +84,23 @@ void IOCP::ProcessWorkerThread() {
 				std::cout << Exception << std::endl;
 			}
 		}
+			
+		if (!Recv(EventSocket)) {
+			DeleteClientFromList(EventSocket);
+		}
+	}
+}
 
-		Recv(EventSocket);
+inline void IOCP::DeleteClientFromList(SOCKETINFO*& EventSocket) {
+	if (EventSocket) {
+		std::unique_lock<std::mutex> ClientLock(m_GetClientLock);
+		auto Client = m_Clients.find(EventSocket->m_Socket);
+		if (Client != m_Clients.end() && Client->second) {
+			delete Client->second;
+		}
+		std::cout << "Server : Disconnet Socket - " << EventSocket->m_Socket << std::endl;
+		m_Clients.erase(EventSocket->m_Socket);
+		closesocket(EventSocket->m_Socket);
+		delete EventSocket;
 	}
 }

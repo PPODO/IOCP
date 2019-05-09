@@ -1,14 +1,10 @@
 #pragma once
 #include "DataBase.h"
+#include "TimerClass.h"
 #include <functional>
-#include <utility>
 #include <vector>
-#include <random>
-#include <chrono>
 #include <queue>
-#include <tuple>
 #include <mutex>
-#include <list>
 #include <map>
 
 const float ItemRespawnTime = 5.f;
@@ -18,7 +14,7 @@ typedef std::function<void(SOCKETINFO*, struct GAMEPACKET*&)> Processor;
 class PacketProcessor {
 	enum { ETP_LASTTIME, ETP_DELAY, ETP_SESSIONID, ETP_PACKET };
 private:
-	std::mutex m_Lock;
+	TimerClass* m_Timer;
 	DataBase* m_DataBase;
 	class IOCP* m_Server;
 
@@ -27,11 +23,8 @@ private:
 	std::map<int, struct SessionInformation> m_Sessions;
 
 private:
-	bool m_bIsStop;
-	std::thread m_TimerThread;
-	std::random_device m_RandomDevice;
-	std::mt19937_64 m_RandomAlgorithm;
-	std::list<std::tuple<std::chrono::system_clock::time_point, std::chrono::duration<float>, int, struct PACKET*>> m_TimerList;
+	std::mutex m_GetSessionInformationLock;
+	std::mutex m_GetSessionLock;
 
 public:
 	PacketProcessor(class IOCP* Server);
@@ -44,7 +37,7 @@ private:
 	void PossessingVehicle(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void CheckStartFlags(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 	void ChangeReadyState(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
-	void AddNewSpawnTimer(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
+	void PickupItemTypeAndSpawnNewItem(SOCKETINFO* Info, struct GAMEPACKET*& Packet);
 
 private:
 	void BroadCast(PACKET* Packet, const std::vector<struct GAMEPACKET>& PlayerList);
@@ -60,6 +53,7 @@ private:
 		A = B;
 		B = NewRank;
 	}
+	void ItemSpawnTimer(const int SessionID, const ITEM ItemInformation);
 
 public:
 	Processor& operator[](const EPACKETMESSAGETYPE& MessageType) {

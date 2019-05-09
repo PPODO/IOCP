@@ -3,61 +3,37 @@
 #include "GamePlayPacket.h"
 #include <iostream>
 #include <algorithm>
-#include <boost/asio.hpp>
-#include <boost/date_time.hpp>
 
-PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_DataBase(nullptr), m_bIsStop(false) {
-	m_RandomAlgorithm = std::mt19937_64(m_RandomDevice());
-
+PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_Timer(nullptr), m_DataBase(nullptr) {
 	m_Processor.push_back(std::bind(&PacketProcessor::JoinGame, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::UpdatePlayerInformation, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::DisconnectPlayer, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::PossessingVehicle, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::CheckStartFlags, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::ChangeReadyState, this, std::placeholders::_1, std::placeholders::_2));
-	m_Processor.push_back(std::bind(&PacketProcessor::AddNewSpawnTimer, this, std::placeholders::_1, std::placeholders::_2));
+	m_Processor.push_back(std::bind(&PacketProcessor::PickupItemTypeAndSpawnNewItem, this, std::placeholders::_1, std::placeholders::_2));
+
+	m_Timer = new TimerClass(1000);
+	if (!m_Timer) {
+		throw "Init Timer Class Failure!";
+	}
 
 	m_DataBase = new DataBase;
 	if (!m_DataBase) {
 		throw "Init DataBase Failure!";
 	}
-
-	m_TimerThread = std::thread([this]() {
-		while (!m_bIsStop) {
-			std::unique_lock<std::mutex> Lock(m_Lock);
-			if (!m_TimerList.empty()) {
-				for (auto Iterator = m_TimerList.begin(); Iterator != m_TimerList.end();) {
-					if (std::get<ETP_PACKET>(*Iterator)) {
-						if (std::chrono::system_clock::now() - std::get<ETP_LASTTIME>(*Iterator) > std::get<ETP_DELAY>(*Iterator)) {
-							auto Session = m_Sessions.find(std::get<ETP_SESSIONID>(*Iterator));
-							if (Session != m_Sessions.cend()) {
-								BroadCast(std::get<ETP_PACKET>(*Iterator), Session->second.m_PlayerList);
-							}
-							delete std::get<ETP_PACKET>(*Iterator);
-							Iterator = m_TimerList.erase(Iterator);
-							continue;
-						}
-					}
-					else {
-						delete std::get<ETP_PACKET>(*Iterator);
-						Iterator = m_TimerList.erase(Iterator);
-						continue;
-					}
-					++Iterator;
-				}
-			}
-		}
-	});
 }
 
 PacketProcessor::~PacketProcessor() {
+	if (m_Timer) {
+		delete m_Timer;
+		m_Timer = nullptr;
+	}
+
 	if (m_DataBase) {
 		delete m_DataBase;
 		m_DataBase = nullptr;
 	}
-
-	m_bIsStop = true;
-	m_TimerThread.join();
 }
 
 void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
@@ -118,15 +94,21 @@ void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 
 void PacketProcessor::UpdatePlayerInformation(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	if (Packet && Info) {
+		m_GetSessionInformationLock.lock();
 		auto Session = m_Sessions.find(Packet->m_SessionID);
+		m_GetSessionInformationLock.unlock();
 		if (Session != m_Sessions.cend()) {
+			std::unique_lock<std::mutex> SessionLock(m_GetSessionLock);
 			auto Character = std::find_if(Session->second.m_PlayerList.begin(), Session->second.m_PlayerList.end(), [&](const GAMEPACKET& Data) -> bool { if (Data.m_UniqueKey == Packet->m_UniqueKey) { return true; } return false; });
 			if (Character != Session->second.m_PlayerList.cend()) {
 				(*Character) = *Packet;
+				int NewRank = UpdatePlayerRanking(Session->second.m_PlayerList, Character);
+				SessionLock.unlock();
+
 				Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 				Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_UPDATE;
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
-				Packet->m_RankInformation.m_CurrentRank = UpdatePlayerRanking(Session->second.m_PlayerList, Character);
+				Packet->m_RankInformation.m_CurrentRank = NewRank;
 				
 				BroadCast(Packet, Session->second.m_PlayerList);
 			}
@@ -137,17 +119,21 @@ void PacketProcessor::UpdatePlayerInformation(SOCKETINFO* Info, GAMEPACKET*& Pac
 void PacketProcessor::DisconnectPlayer(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	if (Packet && Info && m_DataBase) {
 		if (m_DataBase->TryDisconnectGame(Packet->m_SessionID, m_Sessions)) {
+			m_GetSessionInformationLock.lock();
 			auto Iterator = m_Sessions.find(Packet->m_SessionID);
+			m_GetSessionInformationLock.unlock();
 			if (Iterator != m_Sessions.cend()) {
+				std::unique_lock<std::mutex> SessionLock(m_GetSessionLock);
 				auto Character = std::find_if(Iterator->second.m_PlayerList.begin(), Iterator->second.m_PlayerList.end(), [&](const GAMEPACKET& Data) -> bool { if (Data.m_UniqueKey == Packet->m_UniqueKey) { return true; } return false; });
 				if (Character != Iterator->second.m_PlayerList.cend()) {
 					Iterator->second.m_PlayerList.erase(Character);
 					Iterator->second.m_CanStartCount--;
+					ResetPlayerRanking(Iterator->second.m_PlayerList, Packet);
+					SessionLock.unlock();
+
 					Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 					Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_DISCONNECTOTHER;
 					Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
-
-					ResetPlayerRanking(Iterator->second.m_PlayerList, Packet);
 
 					BroadCast(Packet, Iterator->second.m_PlayerList);
 					std::cout << "Disconnect Session Is Succeed! - " << Info->m_Socket << '\t' << Packet->m_SessionID << '\t' << Packet->m_UniqueKey << std::endl;
@@ -160,7 +146,9 @@ void PacketProcessor::DisconnectPlayer(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 
 void PacketProcessor::PossessingVehicle(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 	if (Packet && Info && m_DataBase) {
+		m_GetSessionInformationLock.lock();
 		auto Iterator = m_Sessions.find(Packet->m_SessionID);
+		m_GetSessionInformationLock.unlock();
 		if (Iterator != m_Sessions.cend()) {
 			Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 			Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_POSSESS;
@@ -181,11 +169,15 @@ void PacketProcessor::PossessingVehicle(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 
 void PacketProcessor::CheckStartFlags(SOCKETINFO * Info, GAMEPACKET *& Packet) {
 	if (Info && Packet) {
+		m_GetSessionInformationLock.lock();
 		auto Iterator = m_Sessions.find(Packet->m_SessionID);
+		m_GetSessionInformationLock.unlock();
 		if (Iterator != m_Sessions.cend()) {
+			std::unique_lock<std::mutex> SessionLock(m_GetSessionLock);
 			Iterator->second.m_CanStartCount++;
 			if (Iterator->second.m_CanStartCount == Iterator->second.m_PlayerList.size()) {
 				Iterator->second.m_CanStartCount = 0;
+				SessionLock.unlock();
 				Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 				Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_START;
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
@@ -199,7 +191,9 @@ void PacketProcessor::CheckStartFlags(SOCKETINFO * Info, GAMEPACKET *& Packet) {
 
 void PacketProcessor::ChangeReadyState(SOCKETINFO* Info, GAMEPACKET *& Packet) {
 	if (Info && Packet) {
+		m_GetSessionInformationLock.lock();
 		auto Iterator = m_Sessions.find(Packet->m_SessionID);
+		m_GetSessionInformationLock.unlock();
 		if (Iterator != m_Sessions.cend()) {
 			Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 			Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_READY;
@@ -214,42 +208,12 @@ void PacketProcessor::ChangeReadyState(SOCKETINFO* Info, GAMEPACKET *& Packet) {
 	}
 }
 
-void PacketProcessor::AddNewSpawnTimer(SOCKETINFO* Info, GAMEPACKET*& Packet) {
-	if (Packet && Info) {
-		SPAWNERPACKET* SendPacket = new SPAWNERPACKET;
-		SendPacket->m_PacketType = EPACKETTYPE::EPT_SPAWNER;
-		SendPacket->m_MessageType = EPACKETMESSAGETYPE::EPMT_SPAWNITEM;
-		SendPacket->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
-		SendPacket->m_ItemInformation = Packet->m_ItemInformation;
-		SendPacket->m_ItemInformation.m_ItemType = static_cast<EITEMTYPE>(std::uniform_int_distribution<int>(static_cast<unsigned char>(EITEMTYPE::EIT_HEAL), static_cast<unsigned char>(EITEMTYPE::EIT_COUNT) - 1)(m_RandomAlgorithm));
-		
-		std::unique_lock<std::mutex> Lock(m_Lock);
-		m_TimerList.push_back(std::make_tuple(std::chrono::system_clock::now(), std::chrono::duration<float>(ItemRespawnTime), Packet->m_SessionID, SendPacket));
-	}
-}
+void PacketProcessor::PickupItemTypeAndSpawnNewItem(SOCKETINFO* Info, GAMEPACKET*& Packet) {
+	if (Packet && Info && m_Timer) {
+		TimerDelegate Information(3000);
+		Information.BindDelegate(std::bind(&PacketProcessor::ItemSpawnTimer, this, Packet->m_SessionID, Packet->m_ItemInformation));
 
-void PacketProcessor::BroadCast(PACKET* Packet, const std::vector<struct GAMEPACKET>& PlayerList) {
-	SOCKETINFO* Info = new SOCKETINFO;
-	memset(Info, 0, sizeof(SOCKETINFO));
-
-	for (auto It : PlayerList) {
-		Info->m_Socket = It.m_Socket;
-
-		m_Server->Send(Info, Packet);
-	}
-}
-
-void PacketProcessor::BroadCast(const std::vector<struct GAMEPACKET>& PlayerList, GAMEPACKET*& Packet) {
-	SOCKETINFO* Info = new SOCKETINFO;
-	memset(Info, 0, sizeof(SOCKETINFO));
-	Info->m_Socket = Packet->m_Socket;
-
-	for (auto It : PlayerList) {
-		It.m_PacketType = Packet->m_PacketType;
-		It.m_MessageType = Packet->m_MessageType;
-		It.m_FailedReason = Packet->m_FailedReason;
-
-		m_Server->Send(Info, &It);
+		m_Timer->AddNewTimer(Information);
 	}
 }
 
@@ -284,4 +248,47 @@ void PacketProcessor::ResetPlayerRanking(std::vector<struct GAMEPACKET>& Charact
 			}
 		}
 	}
+}
+
+void PacketProcessor::ItemSpawnTimer(const int SessionID, const ITEM ItemInformation) {
+	m_GetSessionInformationLock.lock();
+	auto Iterator = m_Sessions.find(SessionID);
+	m_GetSessionInformationLock.unlock();
+
+	if (Iterator != m_Sessions.cend()) {
+		SPAWNERPACKET* SendPacket = new SPAWNERPACKET;
+		SendPacket->m_PacketType = EPACKETTYPE::EPT_SPAWNER;
+		SendPacket->m_MessageType = EPACKETMESSAGETYPE::EPMT_SPAWNITEM;
+		SendPacket->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
+		SendPacket->m_ItemInformation = ItemInformation;
+
+		BroadCast(SendPacket, Iterator->second.m_PlayerList);
+	}
+}
+
+void PacketProcessor::BroadCast(PACKET* Packet, const std::vector<struct GAMEPACKET>& PlayerList) {
+	SOCKETINFO* Info = new SOCKETINFO;
+	memset(Info, 0, sizeof(SOCKETINFO));
+
+	for (auto It : PlayerList) {
+		Info->m_Socket = It.m_Socket;
+
+		m_Server->Send(Info, Packet);
+	}
+	delete Info;
+}
+
+void PacketProcessor::BroadCast(const std::vector<struct GAMEPACKET>& PlayerList, GAMEPACKET*& Packet) {
+	SOCKETINFO* Info = new SOCKETINFO;
+	memset(Info, 0, sizeof(SOCKETINFO));
+	Info->m_Socket = Packet->m_Socket;
+
+	for (auto It : PlayerList) {
+		It.m_PacketType = Packet->m_PacketType;
+		It.m_MessageType = Packet->m_MessageType;
+		It.m_FailedReason = Packet->m_FailedReason;
+
+		m_Server->Send(Info, &It);
+	}
+	delete Info;
 }

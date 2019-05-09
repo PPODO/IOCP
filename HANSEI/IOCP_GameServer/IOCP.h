@@ -9,13 +9,14 @@ const int MaxSavePacketCount = 50;
 class IOCP : public IOCP_Base {
 private:
 	std::vector<std::thread> m_WorkerThread;
-	std::mutex m_Lock;
+	std::mutex m_GetClientLock;
 
 private:
 	class PacketProcessor* m_Processor;
 
 private:
 	inline void ClearClientPacketBuffer(std::map<SOCKET, CLIENTPACKETINFORMATION*>::iterator& It);
+	inline void DeleteClientFromList(SOCKETINFO*& EventSocket);
 
 protected:
 	virtual bool CreateWorkerThread() override;
