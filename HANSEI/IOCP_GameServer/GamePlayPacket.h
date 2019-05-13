@@ -15,8 +15,8 @@ enum class EPACKETMESSAGETYPE : unsigned char {
 	EPMT_SPAWNITEM,
 	EPMT_STARTCOUNTING,
 	EPMT_REDZONESTART,
-	EPMT_REDZONEEND,
 	EPMT_NEWPLAYER,
+	EPMT_RESPAWNPLAYER,
 	EPMT_DISCONNECTOTHER,
 	EPMT_COUNT
 };
@@ -31,6 +31,7 @@ enum class EPACKETFAILEDTYPE : unsigned char {
 enum class EPACKETTYPE : unsigned char {
 	EPT_PLAYER,
 	EPT_SPAWNER,
+	EPT_REDZONE,
 	EPT_COUNT
 };
 
@@ -103,6 +104,8 @@ struct GAMEPACKET : public PACKET {
 	VECTOR m_Location;
 	VECTOR m_Rotation;
 	FInputMotionData m_VehicleData;
+	float m_Health;
+	bool m_bIsDead;
 	bool m_bIsLeader;
 	bool m_bIsReady;
 	ITEM m_ItemInformation;
@@ -116,6 +119,8 @@ public:
 		this->m_Rotation = Data.m_Rotation;
 		this->m_UniqueKey = Data.m_UniqueKey;
 		this->m_VehicleData = Data.m_VehicleData;
+		this->m_Health = Data.m_Health;
+		this->m_bIsDead = Data.m_bIsDead;
 		this->m_ItemInformation = Data.m_ItemInformation;
 		this->m_RankInformation = Data.m_RankInformation;
 		this->m_bIsLeader = Data.m_bIsLeader;
@@ -126,6 +131,10 @@ public:
 
 struct SPAWNERPACKET : public PACKET {
 	ITEM m_ItemInformation;
+};
+
+struct REDZONEPACKET : public PACKET {
+	int m_SplinePoint;
 };
 
 class Session {

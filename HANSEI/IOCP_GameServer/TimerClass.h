@@ -62,8 +62,6 @@ public:
 				m_ElapsedTime = ((std::chrono::system_clock::now() - m_StartTime).count() / 10000);
 
 				if (std::chrono::system_clock::now() - m_LastIntervalTime > std::chrono::duration<size_t>(m_SlotInterval / 1000)) {
-					m_CurrentRotationCount = ((m_ElapsedTime / m_SlotInterval) / MaxWheelSize);
-
 					for (auto Iterator = m_TimingWheel[m_CurrentIndex].begin(); Iterator != m_TimingWheel[m_CurrentIndex].end();) {
 						if (m_CurrentRotationCount == Iterator->GetRotationCount()) {
 							if (Iterator->CallbackFunctionCalling()) {
@@ -80,6 +78,7 @@ public:
 
 					if (m_CurrentIndex + 1 >= MaxWheelSize) {
 						m_CurrentIndex = 0;
+						m_CurrentRotationCount++;
 					}
 					else {
 						m_CurrentIndex++;
@@ -97,14 +96,12 @@ public:
 
 public:
 	void AddNewTimer(TimerDelegate& ti) {
-		size_t NewIndex = (m_CurrentIndex + (ti.m_TimeInterval / m_SlotInterval)) % MaxWheelSize;
-		ti.SetRotationCount(((ti.m_TimeInterval / m_SlotInterval) / MaxWheelSize) + m_CurrentRotationCount);
+		size_t NewIndex = (m_CurrentIndex + (ti.m_TimeInterval / m_SlotInterval));
+		ti.SetRotationCount(NewIndex >= MaxWheelSize ? m_CurrentRotationCount + 1 : m_CurrentRotationCount);
 
-		if (NewIndex < MaxWheelSize) {
-			m_TimerListMutex.lock();
-			m_TimingWheel[NewIndex].push_back(ti);
-			m_TimerListMutex.unlock();
-		}
+		m_TimerListMutex.lock();
+		m_TimingWheel[NewIndex % MaxWheelSize].push_back(ti);
+		m_TimerListMutex.unlock();
 	}
 
 };

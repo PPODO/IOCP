@@ -4,7 +4,7 @@
 #include <iostream>
 #include <algorithm>
 
-PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_Timer(nullptr), m_DataBase(nullptr) {
+PacketProcessor::PacketProcessor(IOCP* Server) : m_Server(Server), m_Timer(nullptr), m_DataBase(nullptr), m_RandomAlgorithm(m_RandomDevice()) {
 	m_Processor.push_back(std::bind(&PacketProcessor::JoinGame, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::UpdatePlayerInformation, this, std::placeholders::_1, std::placeholders::_2));
 	m_Processor.push_back(std::bind(&PacketProcessor::DisconnectPlayer, this, std::placeholders::_1, std::placeholders::_2));
@@ -93,7 +93,7 @@ void PacketProcessor::JoinGame(SOCKETINFO* Info, GAMEPACKET*& Packet) {
 }
 
 void PacketProcessor::UpdatePlayerInformation(SOCKETINFO* Info, GAMEPACKET*& Packet) {
-	if (Packet && Info) {
+	if (Packet && Info && m_Timer) {
 		m_GetSessionInformationLock.lock();
 		auto Session = m_Sessions.find(Packet->m_SessionID);
 		m_GetSessionInformationLock.unlock();
@@ -101,6 +101,14 @@ void PacketProcessor::UpdatePlayerInformation(SOCKETINFO* Info, GAMEPACKET*& Pac
 			std::unique_lock<std::mutex> SessionLock(m_GetSessionLock);
 			auto Character = std::find_if(Session->second.m_PlayerList.begin(), Session->second.m_PlayerList.end(), [&](const GAMEPACKET& Data) -> bool { if (Data.m_UniqueKey == Packet->m_UniqueKey) { return true; } return false; });
 			if (Character != Session->second.m_PlayerList.cend()) {
+				if (Packet->m_Health <= 0.f) {
+					Packet->m_bIsDead = true;
+
+					TimerDelegate Delegate(5000);
+					Delegate.BindDelegate(std::bind(&PacketProcessor::RespawnPlayerTimer, this, Packet->m_SessionID, Packet->m_UniqueKey));
+
+					m_Timer->AddNewTimer(Delegate);
+				}
 				(*Character) = *Packet;
 				int NewRank = UpdatePlayerRanking(Session->second.m_PlayerList, Character);
 				SessionLock.unlock();
@@ -178,11 +186,14 @@ void PacketProcessor::CheckStartFlags(SOCKETINFO * Info, GAMEPACKET *& Packet) {
 			if (Iterator->second.m_CanStartCount == Iterator->second.m_PlayerList.size()) {
 				Iterator->second.m_CanStartCount = 0;
 				SessionLock.unlock();
+
 				Packet->m_PacketType = EPACKETTYPE::EPT_PLAYER;
 				Packet->m_MessageType = EPACKETMESSAGETYPE::EPMT_START;
 				Packet->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
 
 				BroadCast(Packet, Iterator->second.m_PlayerList);
+				BindRedZoneTimer(Packet->m_SessionID);
+
 				std::cout << "Succeed Start Game!\n";
 			}
 		}
@@ -263,6 +274,54 @@ void PacketProcessor::ItemSpawnTimer(const int SessionID, const ITEM ItemInforma
 		SendPacket->m_ItemInformation = ItemInformation;
 
 		BroadCast(SendPacket, Iterator->second.m_PlayerList);
+	}
+}
+
+void PacketProcessor::RedZoneTimer(const int SessionID) {
+	m_GetSessionInformationLock.lock();
+	auto Iterator = m_Sessions.find(SessionID);
+	m_GetSessionInformationLock.unlock();
+
+	if (Iterator != m_Sessions.cend()) {
+		REDZONEPACKET* SendPacket = new REDZONEPACKET;
+		SendPacket->m_PacketType = EPACKETTYPE::EPT_REDZONE;
+		SendPacket->m_MessageType = EPACKETMESSAGETYPE::EPMT_REDZONESTART;
+		SendPacket->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
+		SendPacket->m_SplinePoint = std::uniform_int_distribution<int>(0, 28)(m_RandomAlgorithm);
+
+		BroadCast(SendPacket, Iterator->second.m_PlayerList);
+	//	BindRedZoneTimer(SessionID);
+	}
+}
+
+void PacketProcessor::RespawnPlayerTimer(const int SessionID, const int UniqueKey) {
+	m_GetSessionInformationLock.lock();
+	auto Iterator = m_Sessions.find(SessionID);
+	m_GetSessionInformationLock.unlock();
+
+	if (Iterator != m_Sessions.cend()) {
+		auto TempPacket = std::find_if(Iterator->second.m_PlayerList.begin(), Iterator->second.m_PlayerList.end(), [&](const GAMEPACKET& Packet) -> bool {
+			if (UniqueKey == Packet.m_UniqueKey) {
+				return true;
+			}
+			return false;
+		});
+
+		if (TempPacket != Iterator->second.m_PlayerList.cend()) {
+			GAMEPACKET* SendPacket = new GAMEPACKET;
+			SendPacket->m_PacketType = EPACKETTYPE::EPT_PLAYER;
+			SendPacket->m_MessageType = EPACKETMESSAGETYPE::EPMT_RESPAWNPLAYER;
+			SendPacket->m_FailedReason = EPACKETFAILEDTYPE::EPFT_SUCCEED;
+			SendPacket->m_SessionID = SessionID;
+			SendPacket->m_UniqueKey = UniqueKey;
+			SendPacket->m_RankInformation = TempPacket->m_RankInformation;
+			SendPacket->m_Location = TempPacket->m_Location;
+			SendPacket->m_Rotation = TempPacket->m_Rotation;
+			SendPacket->m_Health = 100.f;
+			SendPacket->m_bIsDead = false;
+
+			BroadCast(SendPacket, Iterator->second.m_PlayerList);
+		}
 	}
 }
 

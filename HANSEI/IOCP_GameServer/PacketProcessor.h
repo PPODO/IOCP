@@ -5,9 +5,11 @@
 #include <vector>
 #include <queue>
 #include <mutex>
+#include <random>
 #include <map>
 
-const float ItemRespawnTime = 5.f;
+const float RedZoneSpawnMinTime = 20.f;
+const float RedZoneSpawnMaxTime = 60.f;
 
 typedef std::function<void(SOCKETINFO*, struct GAMEPACKET*&)> Processor;
 
@@ -21,6 +23,8 @@ private:
 private:
 	std::vector<Processor> m_Processor;
 	std::map<int, struct SessionInformation> m_Sessions;
+	std::random_device m_RandomDevice;
+	std::mt19937_64 m_RandomAlgorithm;
 
 private:
 	std::mutex m_GetSessionInformationLock;
@@ -53,7 +57,19 @@ private:
 		A = B;
 		B = NewRank;
 	}
+	inline void BindRedZoneTimer(const int& SessionID) {
+		if (m_Timer) {
+//			std::uniform_real_distribution<float>(RedZoneSpawnMinTime, RedZoneSpawnMaxTime)(m_RandomAlgorithm)
+			TimerDelegate Delegate(5000);
+			Delegate.BindDelegate(std::bind(&PacketProcessor::RedZoneTimer, this, SessionID));
+
+			m_Timer->AddNewTimer(Delegate);
+		}
+	}
+
 	void ItemSpawnTimer(const int SessionID, const ITEM ItemInformation);
+	void RedZoneTimer(const int SessionID);
+	void RespawnPlayerTimer(const int SessionID, const int UniqueKey);
 
 public:
 	Processor& operator[](const EPACKETMESSAGETYPE& MessageType) {
