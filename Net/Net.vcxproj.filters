@@ -48,10 +48,22 @@
     <ClInclude Include="MemoryPool.hpp">
       <Filter>Header Files\util\include</Filter>
     </ClInclude>
+    <ClInclude Include="Socket.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketAddress.h">
+      <Filter>Header Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CriticalSection.cpp">
       <Filter>Header Files\util\src</Filter>
+    </ClCompile>
+    <ClCompile Include="SocketAddress.cpp">
+      <Filter>Header Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="Socket.cpp">
+      <Filter>Header Files\src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

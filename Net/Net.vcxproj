@@ -134,9 +134,13 @@
     <ClInclude Include="CriticalSection.h" />
     <ClInclude Include="MemoryPool.hpp" />
     <ClInclude Include="MultiThreadSynchronize.hpp" />
+    <ClInclude Include="Socket.h" />
+    <ClInclude Include="SocketAddress.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CriticalSection.cpp" />
+    <ClCompile Include="Socket.cpp" />
+    <ClCompile Include="SocketAddress.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

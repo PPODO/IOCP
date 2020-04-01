@@ -73,12 +73,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\source\repos\Hansei Racing\x64\Debug;C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;C:\Users\Lee Jun Hyeung\source\repos\Server_PLAYERUNKNOWN-s_BATTLERACING;D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Lee Jun Hyeung\source\repos\Server_PLAYERUNKNOWN-s_BATTLERACING\x64\Debug;D:\source\repos\Hansei Racing\x64\Debug;C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\source\repos\Hansei Racing\x64\Release;C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;C:\Users\Lee Jun Hyeung\source\repos\Server_PLAYERUNKNOWN-s_BATTLERACING;D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Lee Jun Hyeung\source\repos\Server_PLAYERUNKNOWN-s_BATTLERACING\x64\Release;D:\source\repos\Hansei Racing\x64\Release;C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
