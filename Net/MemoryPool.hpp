@@ -56,9 +56,6 @@ namespace MemoryManagement {
 
 	private:
 		void ChunkSplit() noexcept {
-			mPointerAddress = std::make_unique<uint8_t[]>(mTypeSize * mMaxAllocLength);
-			mHeadAddress = mPointerAddress.get();
-
 			uint8_t** currentPtr = reinterpret_cast<uint8_t**>(mHeadAddress);
 			uint8_t* nextPtr = mHeadAddress;
 
