@@ -20,7 +20,6 @@ namespace MemoryManagement {
 
 		~CChunk() { mHeadAddress = nullptr; };
 
-	public:
 		CChunk& operator=(CChunk&& rhs) noexcept {
 			this->mPointerAddress = std::move(rhs.mPointerAddress);
 			this->mHeadAddress = rhs.mHeadAddress;
@@ -77,10 +76,11 @@ namespace MemoryManagement {
 	};
 
 	class CMemoryManager {
+		friend class CChunk;
 	public:
 		void* Allocate(size_t typeSize, size_t maxAllocLength) noexcept {
 			if (mChunkList.size() == 0) {
-				return mChunkList.emplace(mChunkList.begin(), typeSize, maxAllocLength * (mChunkList.size() + 1))->Allocate();
+				return mChunkList.emplace(mChunkList.begin(), typeSize, maxAllocLength)->Allocate();
 			}
 
 			for (auto& Chunk : mChunkList) {
