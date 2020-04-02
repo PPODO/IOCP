@@ -1,8 +1,8 @@
 #include <iostream>
-#include <Net/MemoryPool.hpp>
+#include <Net/Socket.h>
 
 int main() {
-
+	TcpSocket::CreateTcpSocket();
 
 	return 0;
 }

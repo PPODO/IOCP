@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include "MultiThreadSynchronize.hpp"
 
 namespace MemoryManagement {
 	class CChunk {
@@ -20,7 +21,6 @@ namespace MemoryManagement {
 
 		~CChunk() { mHeadAddress = nullptr; };
 
-	public:
 		CChunk& operator=(CChunk&& rhs) noexcept {
 			this->mPointerAddress = std::move(rhs.mPointerAddress);
 			this->mHeadAddress = rhs.mHeadAddress;
@@ -76,11 +76,14 @@ namespace MemoryManagement {
 
 	};
 
-	class CMemoryManager {
+	class CMemoryManager : public MultiThreadSynchronize::CMultiThreadSync<CMemoryManager> {
+		friend class CChunk;
 	public:
 		void* Allocate(size_t typeSize, size_t maxAllocLength) noexcept {
+			CThreadSynchronize Sync(this);
+
 			if (mChunkList.size() == 0) {
-				return mChunkList.emplace(mChunkList.begin(), typeSize, maxAllocLength * (mChunkList.size() + 1))->Allocate();
+				return mChunkList.emplace(mChunkList.begin(), typeSize, maxAllocLength)->Allocate();
 			}
 
 			for (auto& Chunk : mChunkList) {
@@ -93,6 +96,8 @@ namespace MemoryManagement {
 		}
 
 		void Deallocate(void* deletePtr) noexcept {
+			CThreadSynchronize Sync(this);
+
 			for (auto& Chunk : mChunkList) {
 				if (Chunk.Is_has(deletePtr)) {
 					Chunk.Deallocate(deletePtr);

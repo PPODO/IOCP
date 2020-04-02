@@ -1,5 +1,6 @@
 #pragma once
 #include "CriticalSection.h"
+#include <iostream>
 
 namespace MultiThreadSynchronize {
 	template<typename type>
@@ -9,9 +10,11 @@ namespace MultiThreadSynchronize {
 		public:
 			explicit CThreadSynchronize(type* instance) noexcept : mInstance(instance) {
 				mInstance->mSync.Enter();
+				std::cout << "Lock!\n";
 			}
 
 			~CThreadSynchronize() noexcept {
+				std::cout << "UnLock!\n";
 				mInstance->mSync.Leave();
 			}
 
