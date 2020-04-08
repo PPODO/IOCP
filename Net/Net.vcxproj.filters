@@ -54,6 +54,15 @@
     <ClInclude Include="SocketAddress.h">
       <Filter>Header Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="Iocp.h">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlappedType.h">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
+    <ClInclude Include="Config.h">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CriticalSection.cpp">
@@ -64,6 +73,9 @@
     </ClCompile>
     <ClCompile Include="Socket.cpp">
       <Filter>Header Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="Iocp.cpp">
+      <Filter>Source Files\src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

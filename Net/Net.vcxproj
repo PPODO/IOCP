@@ -131,14 +131,18 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CircularQueue.hpp" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="CriticalSection.h" />
+    <ClInclude Include="Iocp.h" />
     <ClInclude Include="MemoryPool.hpp" />
     <ClInclude Include="MultiThreadSynchronize.hpp" />
+    <ClInclude Include="OverlappedType.h" />
     <ClInclude Include="Socket.h" />
     <ClInclude Include="SocketAddress.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CriticalSection.cpp" />
+    <ClCompile Include="Iocp.cpp" />
     <ClCompile Include="Socket.cpp" />
     <ClCompile Include="SocketAddress.cpp" />
   </ItemGroup>
