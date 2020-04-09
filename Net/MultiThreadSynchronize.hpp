@@ -10,11 +10,9 @@ namespace MultiThreadSynchronize {
 		public:
 			explicit CThreadSynchronize(type* instance) noexcept : mInstance(instance) {
 				mInstance->mSync.Enter();
-				std::cout << "Lock!\n";
 			}
 
 			~CThreadSynchronize() noexcept {
-				std::cout << "UnLock!\n";
 				mInstance->mSync.Leave();
 			}
 
