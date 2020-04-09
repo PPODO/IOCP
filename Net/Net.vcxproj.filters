@@ -63,6 +63,12 @@
     <ClInclude Include="Config.h">
       <Filter>Source Files\include</Filter>
     </ClInclude>
+    <ClInclude Include="CircularBuffer.hpp">
+      <Filter>Header Files\util\include</Filter>
+    </ClInclude>
+    <ClInclude Include="WorkerThread.h">
+      <Filter>Source Files\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CriticalSection.cpp">
@@ -75,6 +81,15 @@
       <Filter>Header Files\src</Filter>
     </ClCompile>
     <ClCompile Include="Iocp.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="CircularBuffer.cpp">
+      <Filter>Header Files\util\src</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlappedType.cpp">
+      <Filter>Source Files\src</Filter>
+    </ClCompile>
+    <ClCompile Include="WorkerThread.cpp">
       <Filter>Source Files\src</Filter>
     </ClCompile>
   </ItemGroup>

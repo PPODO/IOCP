@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{1338988B-AB6E-45ED-B349-CD2B9DA3334A}</ProjectGuid>
-    <RootNamespace>Net</RootNamespace>
+    <ProjectGuid>{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}</ProjectGuid>
+    <RootNamespace>testclient</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -39,13 +39,13 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -69,15 +69,15 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;$(IncludePath)</IncludePath>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0\stage\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Users\sherl\OneDrive\Documents\boost_1_70_0;$(IncludePath)</IncludePath>
+    <IncludePath>D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\source\repos\Hansei Racing\x64\Release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LibraryPath>D:\source\repos\Hansei Racing\x64\Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\source\repos\Hansei Racing;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
@@ -86,9 +86,10 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>Net.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
@@ -130,26 +131,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CircularBuffer.hpp" />
-    <ClInclude Include="CircularQueue.hpp" />
-    <ClInclude Include="Config.h" />
-    <ClInclude Include="CriticalSection.h" />
-    <ClInclude Include="Iocp.h" />
-    <ClInclude Include="MemoryPool.hpp" />
-    <ClInclude Include="MultiThreadSynchronize.hpp" />
-    <ClInclude Include="OverlappedType.h" />
-    <ClInclude Include="Socket.h" />
-    <ClInclude Include="SocketAddress.h" />
-    <ClInclude Include="WorkerThread.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="CircularBuffer.cpp" />
-    <ClCompile Include="CriticalSection.cpp" />
-    <ClCompile Include="Iocp.cpp" />
-    <ClCompile Include="OverlappedType.cpp" />
-    <ClCompile Include="Socket.cpp" />
-    <ClCompile Include="SocketAddress.cpp" />
-    <ClCompile Include="WorkerThread.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

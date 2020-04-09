@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Master Server", "Master Ser
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Net", "Net\Net.vcxproj", "{1338988B-AB6E-45ED-B349-CD2B9DA3334A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "test_client", "test_client\test_client.vcxproj", "{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{1338988B-AB6E-45ED-B349-CD2B9DA3334A}.Release|x64.Build.0 = Release|x64
 		{1338988B-AB6E-45ED-B349-CD2B9DA3334A}.Release|x86.ActiveCfg = Release|Win32
 		{1338988B-AB6E-45ED-B349-CD2B9DA3334A}.Release|x86.Build.0 = Release|Win32
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Debug|x64.ActiveCfg = Debug|x64
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Debug|x64.Build.0 = Debug|x64
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Debug|x86.ActiveCfg = Debug|Win32
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Debug|x86.Build.0 = Debug|Win32
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Release|x64.ActiveCfg = Release|x64
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Release|x64.Build.0 = Release|x64
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Release|x86.ActiveCfg = Release|Win32
+		{60CFEF5D-8BDD-451A-A6BF-795F8B008D5D}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
