@@ -4,28 +4,24 @@
 #include <thread>
 #include <vector>
 
-namespace IOCP {
-	class CIOCP;
-}
-
 namespace TcpSocket {
 	class CTcpSocket;
 }
 
-namespace WorkerThread {
-	void ProcessingQCP(class IOCP::CIOCP* const iocp);
-}
-
 namespace IOCP {
+	class CSession;
+
 	class CIOCP {
-		friend static void WorkerThread::ProcessingQCP(CIOCP* const iocp);
 	public:
-		CIOCP(std::shared_ptr<const CConfig> config);
+		CIOCP();
 		~CIOCP();
 
 	public:
 		bool Initialize();
 		void Run();
+
+	public:
+		__forceinline HANDLE GetIOCPHandle() const { return mhIOCP; }
 
 	private:
 		const size_t mMaxThreadCount;
@@ -37,11 +33,11 @@ namespace IOCP {
 		std::vector<std::thread> mWorkerThreads;
 
 	private:
-		std::unique_ptr<TcpSocket::CTcpSocket> mListenSocket;
-		std::vector<std::unique_ptr<TcpSocket::CTcpSocket>> mClients;
+		std::unique_ptr<CSession> mListenSocket;
+		std::vector<std::unique_ptr<CSession>> mClients;
 
 	};
 
 	static WSADATA gWinSockData;
-	static bool RegisterIOCompletionPort(HANDLE hIOCP, class TcpSocket::CTcpSocket* const socket);
+	static bool RegisterIOCompletionPort(HANDLE hIOCP, class CSession* const session);
 }
