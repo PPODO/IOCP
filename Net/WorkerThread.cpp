@@ -1,12 +1,14 @@
 #include "WorkerThread.h"
 #include "OverlappedType.h"
+#include "PacketHandler.h"
 #include "Socket.h"
+#include "Session.h"
 #include "Iocp.h"
 
 namespace WorkerThread {
 	void ProcessingQCP(IOCP::CIOCP* const iocp) {
 		using namespace Overlapped;
-		HANDLE hIOCP = iocp->mhIOCP;
+		HANDLE hIOCP = iocp->GetIOCPHandle();
 
 		while (true) {
 			DWORD recvBytes;
@@ -17,8 +19,8 @@ namespace WorkerThread {
 				break;
 			}
 
-			auto clientSocket = reinterpret_cast<TcpSocket::CTcpSocket*>(completionKey);
-			if (lpOverlapped && clientSocket) {
+			auto clientSession = reinterpret_cast<IOCP::CSession*>(completionKey);
+			if (lpOverlapped && clientSession) {
 				if (!succeed || (recvBytes <= 0 && lpOverlapped->mFlag != EOverlappedFlag::ReceiveZero)) {
 					switch (lpOverlapped->mFlag) {
 					case EOverlappedFlag::Accept:
@@ -35,14 +37,11 @@ namespace WorkerThread {
 				else {
 					switch (lpOverlapped->mFlag) {
 					case EOverlappedFlag::ReceiveZero:
-						std::cout << "22\n";
-						clientSocket->PostReceive();
+						clientSession->PostReceive();
 						break;
 					case EOverlappedFlag::Receive:
-
-						std::cout << "HI\n";
-
-						clientSocket->PreReceive();
+						clientSession->ReceiveCompletion(recvBytes);
+						clientSession->PreReceive();
 						break;
 					case EOverlappedFlag::Send:
 
@@ -55,7 +54,7 @@ namespace WorkerThread {
 	}
 
 	void AcceptClient(void* const client) {
-		auto requestedClient = reinterpret_cast<TcpSocket::CTcpSocket*>(client);
+		auto requestedClient = reinterpret_cast<IOCP::CSession*>(client);
 		if (requestedClient) {
 			std::cout << "Accept!\n";
 			requestedClient->PreReceive();
