@@ -77,7 +77,6 @@ namespace MemoryManagement {
 	};
 
 	class CMemoryManager : public MultiThreadSynchronize::CMultiThreadSync<CMemoryManager> {
-		friend class CChunk;
 	public:
 		void* Allocate(size_t typeSize, size_t maxAllocLength) noexcept {
 			CThreadSynchronize Sync(this);
