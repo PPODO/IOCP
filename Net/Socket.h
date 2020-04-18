@@ -11,25 +11,27 @@ namespace IPEndPoint {
 namespace TcpSocket {
 	class CTcpSocket {
 	public:
-		explicit CTcpSocket(size_t defaultBufferSize);
-		explicit CTcpSocket(SOCKET hSocket, size_t defaultBufferSize) noexcept;
+		explicit CTcpSocket(size_t defaultBufferSize, DWORD dwFlag);
 		~CTcpSocket() noexcept;
 
 	public:
 		bool Bind(const class IPEndPoint::CIPEndPoint& bindAddress) noexcept;
 		bool Listen(int backLog) noexcept;
 		bool Connect(const class IPEndPoint::CIPEndPoint& connectAddress) noexcept;
-		bool Accept(const CTcpSocket& listenSocket) noexcept;
-		bool PreReceive();
-		bool PostReceive();
-		bool Send(const char* const buffer);
+		bool Receive() noexcept;
+		bool Send(const char* const buffer) noexcept;
+
+	public:
+		void ReceiveCompletion(DWORD dwReceiveBytes) noexcept;
 
 	public:
 		__forceinline SOCKET GetSocketHandle() const { return mSock; }
 
+	protected:
+		Buffer::CCircularBuffer mReceiveBuffer;
+
 	private:
 		SOCKET mSock;
-		Buffer::CCircularBuffer mReceiveBuffer;
 
 	};
 
