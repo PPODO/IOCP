@@ -1,61 +1,88 @@
 #include "CircularBuffer.hpp"
 
 namespace Buffer {
-	CCircularBuffer::CCircularBuffer(size_t buffer_size) noexcept :
-		mBufferSize(buffer_size), mBuffer(new char[buffer_size]), 
-		mBufferEnd(mBuffer.get() + (buffer_size - 1)), mBufferFront(mBuffer.get()), 
-		mBufferRear(mBuffer.get()), mTotalBytes() 
+	CCircularBuffer::CCircularBuffer(size_t capacity) noexcept :
+		mCapacity(capacity), mBuffer(new char[capacity]),
+		mBufferEnd(mBuffer.get() + (capacity - 1)), mBufferA(mBuffer.get()),
+		mBufferB(nullptr), mBufferASize(), mBufferBSize()
 	{
-		std::memset(mBuffer.get(), 0, sizeof(char) * buffer_size);
+		std::memset(mBuffer.get(), 0, sizeof(char) * capacity);
 	}
 
 	CCircularBuffer::~CCircularBuffer() {}
 
-	void CCircularBuffer::Push(const char* const buffer) noexcept {
-		using namespace MultiThreadSynchronize;
-		CSynchronizeType<CCircularBuffer> Sync(this);
+	void CCircularBuffer::Remove(size_t length) {
+		CThreadSynchronize Sync(this);
 
-		size_t length = std::strlen(buffer);
-		if (length > mBufferSize - 1) {
-			std::cout << "buffer length must be less than " << mBufferSize - 1 << "bytes!";
-			return;
+		if (mBufferASize > 0) {
+			size_t removeLen = (mBufferASize < length ? mBufferASize : length);
+			mBufferASize -= removeLen;
+			mBufferA += removeLen;
+			length -= removeLen;
 		}
 
-		if (length <= mBufferEnd - mBufferRear - 1) {
-			std::memcpy(mBufferRear, buffer, length);
-			mBufferRear += length;
+		if (length > 0 && mBufferBSize > 0) {
+			size_t removeLen = (mBufferBSize < length ? mBufferBSize : length);
+			mBufferBSize -= removeLen;
+			mBufferB += removeLen;
+			length -= removeLen;
 		}
-		else {
-			int remainBytes = mBufferEnd - mBufferRear;
-			std::memcpy(mBufferRear, buffer, remainBytes);
-			mBufferRear = mBuffer.get();
-			std::memcpy(mBufferRear, buffer + remainBytes, length - remainBytes);
-			mBufferRear += length - remainBytes;
+
+		if (mBufferASize == 0) {
+			if (mBufferBSize > 0) {
+				memmove(mBuffer.get(), mBufferB, mBufferBSize);
+
+				mBufferA = mBuffer.get();
+				mBufferASize = mBufferBSize;
+				mBufferB = nullptr;
+				mBufferBSize = 0;
+			}
+			else {
+				mBufferB = nullptr;
+				mBufferBSize = 0;
+				mBufferA = mBuffer.get();
+				mBufferASize = 0;
+			}
 		}
-		mTotalBytes += length;
 	}
 
-	void CCircularBuffer::Pop(char* const buffer, size_t length) noexcept {
-		using namespace MultiThreadSynchronize;
-		CSynchronizeType<CCircularBuffer> Sync(this);
+	void CCircularBuffer::Commit(size_t length) {
+		CThreadSynchronize Sync(this);
 
-		if (length > mBufferSize - 1) {
-			std::cout << "buffer length must be less than " << mBufferSize - 1 << "bytes!";
-			return;
-		}
-
-		if (length <= mBufferEnd - mBufferFront - 1) {
-			std::memcpy(buffer, mBufferFront, length);
-			mBufferFront += length;
+		if (mBufferB) {
+			mBufferBSize += length;
 		}
 		else {
-			int remainBytes = mBufferEnd - mBufferFront;
-			std::memcpy(buffer, mBufferFront, remainBytes);
-			mBufferFront = mBuffer.get();
-			std::memcpy(buffer + remainBytes, mBufferFront, length - remainBytes);
-			mBufferFront += length - remainBytes;
+			mBufferASize += length;
 		}
-		mTotalBytes -= (length >= mTotalBytes ? mTotalBytes : length);
 	}
 
+	char* CCircularBuffer::GetWriteOnlyBuffer() {
+		CThreadSynchronize Sync(this);
+
+		if (mBufferB) {
+			return mBufferB + mBufferBSize;
+		}
+		else {
+			return mBufferA + mBufferASize;
+		}
+		return nullptr;
+	}
+
+	size_t CCircularBuffer::GetFreeSpaceSize() {
+		CThreadSynchronize Sync(this);
+
+		if (mBufferB) {
+			return GetBFreeSpace();
+		}
+		else {
+			if (GetAFreeSpace() < GetFreeSpaceBeforeA()) {
+				mBufferB = mBuffer.get();
+				return GetBFreeSpace();
+			}
+			return GetAFreeSpace();
+		}
+	}
+
+	
 }

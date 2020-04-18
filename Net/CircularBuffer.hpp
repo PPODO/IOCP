@@ -5,29 +5,52 @@
 namespace Buffer {
 	class CCircularBuffer : public MultiThreadSynchronize::CMultiThreadSync<CCircularBuffer> {
 	public:
-		explicit CCircularBuffer(size_t buffer_size) noexcept;
+		explicit CCircularBuffer(size_t capacity) noexcept;
 		~CCircularBuffer();
 
 	public:
-		void Push(const char* const buffer) noexcept;
-		void Pop(char* const buffer, size_t length) noexcept;
+		void Remove(size_t length);
+		void Commit(size_t length);
+		char* GetWriteOnlyBuffer();
+		size_t GetFreeSpaceSize();
 
 	public:
-		__forceinline size_t GetRemainBytes() noexcept {
-			using namespace MultiThreadSynchronize;
-			CSynchronizeType<CCircularBuffer> Sync(this);
+		__forceinline char* GetReadOnlyBuffer() {
+			CThreadSynchronize Sync(this);
 
-			return mTotalBytes;
+			if (mBufferASize > 0) {
+				return mBufferA;
+			}
+			return mBufferB;
+		}
+		__forceinline size_t GetStoredSize() {
+			CThreadSynchronize Sync(this);
+
+			return mBufferASize + mBufferBSize;
 		}
 
 	private:
-		const size_t mBufferSize;
+		__forceinline size_t GetAFreeSpace() const {
+			return (mBufferEnd - mBufferA - mBufferASize);
+		}
+		__forceinline size_t GetFreeSpaceBeforeA() const {
+			return mBufferA - mBuffer.get();
+		}
+		__forceinline size_t GetBFreeSpace() const {
+			return (mBufferA - mBufferB - mBufferBSize);
+		}
 
+	private:
+		const size_t mCapacity;
+		
 		std::unique_ptr<char[]> mBuffer;
 		char* const mBufferEnd;
-		char* mBufferFront;
-		char* mBufferRear;
-		size_t mTotalBytes;
+
+		char* mBufferA;
+		size_t mBufferASize;
+
+		char* mBufferB;
+		size_t mBufferBSize;
 
 	};
 
