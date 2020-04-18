@@ -138,6 +138,8 @@
     <ClInclude Include="MemoryPool.hpp" />
     <ClInclude Include="MultiThreadSynchronize.hpp" />
     <ClInclude Include="OverlappedType.h" />
+    <ClInclude Include="PacketHandler.h" />
+    <ClInclude Include="Session.h" />
     <ClInclude Include="Socket.h" />
     <ClInclude Include="SocketAddress.h" />
     <ClInclude Include="WorkerThread.h" />
@@ -147,6 +149,7 @@
     <ClCompile Include="CriticalSection.cpp" />
     <ClCompile Include="Iocp.cpp" />
     <ClCompile Include="OverlappedType.cpp" />
+    <ClCompile Include="Session.cpp" />
     <ClCompile Include="Socket.cpp" />
     <ClCompile Include="SocketAddress.cpp" />
     <ClCompile Include="WorkerThread.cpp" />
