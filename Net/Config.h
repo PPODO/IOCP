@@ -5,14 +5,14 @@
 #include <exception>
 
 class CConfig {
-	static const size_t buffer_length = 32;
-	friend std::shared_ptr<const CConfig> LoadIni(const char* const filePath) noexcept;
+	friend CConfig& GetNetConfig();
 private:
-	CConfig() noexcept : 
-		mMaxThreadCount(), mMaxClientCount(),
-		mPortNumber(), mProtocolType() {
+	CConfig() noexcept {
 		ZeroMemory(mIPAddress, buffer_length);
 	}
+	
+public:
+	static const size_t buffer_length = 32;
 
 public:
 	int mMaxThreadCount;
@@ -26,22 +26,18 @@ public:
 
 };
 
-static std::shared_ptr<const CConfig> LoadIni(const char* const filePath) noexcept {
-	CConfig* Result = nullptr;
-	try {
-		Result = new CConfig;
+__forceinline CConfig& GetNetConfig() {
+	static CConfig ret;
+	return ret;
+}
 
-		Result->mMaxThreadCount = GetPrivateProfileInt("System", "Max Thread Count", 0, filePath);
-		Result->mMaxClientCount = GetPrivateProfileInt("System", "Max Client Count", 256, filePath);
-		Result->mDefaultBufferSize = GetPrivateProfileInt("System", "Default Buffer Size", 2048, filePath);
+static void LoadIni(const char* const filePath) noexcept {
+	auto& Config = GetNetConfig();
+	Config.mMaxThreadCount = GetPrivateProfileInt("System", "Max Thread Count", 0, filePath);
+	Config.mMaxClientCount = GetPrivateProfileInt("System", "Max Client Count", 256, filePath);
+	Config.mDefaultBufferSize = GetPrivateProfileInt("System", "Default Buffer Size", 2048, filePath);
 
-		GetPrivateProfileString("Networking", "IP Address", "0.0.0.0", Result->mIPAddress, CConfig::buffer_length, filePath);
-		Result->mPortNumber = GetPrivateProfileInt("Networking", "Port Number", 3550, filePath);
-		Result->mProtocolType = GetPrivateProfileInt("Networking", "Protocol Type", 0, filePath);
-
-	}
-	catch (const std::exception& Exception) {
-		printf("Exception - %s", Exception.what());
-	}
-	return std::shared_ptr<CConfig>(Result);
+	GetPrivateProfileString("Networking", "IP Address", "0.0.0.0", Config.mIPAddress, CConfig::buffer_length, filePath);
+	Config.mPortNumber = GetPrivateProfileInt("Networking", "Port Number", 3550, filePath);
+	Config.mProtocolType = GetPrivateProfileInt("Networking", "Protocol Type", 0, filePath);
 }
