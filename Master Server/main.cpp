@@ -1,11 +1,13 @@
 #include <iostream>
 #include <Net/Iocp.h>
+#include <Net/CircularBuffer.hpp>
 
 int main() {
-	IOCP::CIOCP iocp(LoadIni("../test.ini"));
+	LoadIni("../test.ini");
+
+	IOCP::CIOCP iocp;
 
 	iocp.Initialize();
 	iocp.Run();
-
 	return 0;
 }
