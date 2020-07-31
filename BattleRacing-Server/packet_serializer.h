@@ -125,6 +125,10 @@ public:
 		return mBuffer[index];
 	}
 
+	size_t Len() {
+		return strlen(mBuffer);
+	}
+
 public:
 	char mBuffer[buffer_length];
 
@@ -150,6 +154,11 @@ public:
 
 		if (bitCount > 0)
 			WriteBits(*srcByte, bitCount);
+	}
+
+public:
+	buffer& GetBuffer() {
+		return *mBuffer;
 	}
 
 private:
@@ -200,6 +209,11 @@ public:
 
 		if (bitCount > 0)
 			ReadBits(*srcByte, bitCount);
+	}
+
+public:
+	buffer& GetBuffer() {
+		return *mBuffer;
 	}
 
 private:

@@ -1,4 +1,5 @@
 #include "Iocp.h"
+#include "packetprocessor.h"
 
 const size_t Iocp::Max_WorkerThread_Count = std::thread::hardware_concurrency() * 2;
 const size_t Iocp::Max_Client_Socket_Count = 256;
@@ -82,7 +83,7 @@ bool Iocp::WorkerThread() {
 			else {
 				switch (overlapped->mOverlappedType) {
 				case EOverlappedType::EOT_Receive:
-
+					PacketProcessing(overlapped->mWSABuffer.buf);
 					clientSocket->Receive();
 					break;
 				case EOverlappedType::EOT_Send:

@@ -38,3 +38,8 @@ Release/
 /**/Debug/
 /**/Release/
 /**/x64/
+
+#file
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user

@@ -19,9 +19,9 @@ public:
 public:
 	template<typename archive>
 	void serialize(archive& ar) {
-		ar& x;
-		ar& y;
-		ar& z;
+		ar& mX;
+		ar& mY;
+		ar& mZ;
 	}
 
 public:
@@ -56,7 +56,11 @@ public:
 struct FLoginRequest : public FPacketBase {
 public:
 	FLoginRequest(const std::string& id, const std::string& password)
-		: FPacketBase(EPacketType::Login), mId(id), mPassword(password) {};
+		: FPacketBase(EPacketType::Login), mId(id), mPassword(password) {
+	};
+	FLoginRequest(const char* id, const char* password)
+		: FPacketBase(EPacketType::Login), mId(id), mPassword(password) {
+	};
 
 public:
 	template<typename archive>

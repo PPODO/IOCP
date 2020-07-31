@@ -81,6 +81,7 @@ public:
 				return allocatedPointer;
 			return mChunkList.emplace(mChunkList.begin(), typeSize, allocateLength)->Allocate();
 		}
+		return nullptr;
 	}
 
 	void Deallocate(void* const pointer) {
